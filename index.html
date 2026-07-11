@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* ─── Base Reset & Fonts ─── */
+        /* ─── Base Reset ─── */
         * {
             -webkit-tap-highlight-color: transparent;
         }
@@ -17,7 +17,7 @@
             color: #f8fafc;
         }
 
-        /* ─── Custom Scrollbar ─── */
+        /* ─── Scrollbar ─── */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -48,7 +48,7 @@
             overflow: hidden;
         }
 
-        /* ─── Chat Message Bubble ─── */
+        /* ─── Chat Bubbles ─── */
         .bubble-me {
             background: linear-gradient(135deg, #F59E0B, #FBBF24);
             color: #0f172a;
@@ -69,6 +69,21 @@
             border: 1px solid #334155;
             font-weight: 500;
         }
+
+        /* ─── Center Match Tab ─── */
+        #tab-match {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+        #deck-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -88,52 +103,50 @@
 </head>
 <body>
 
-    <!-- ─── MAIN APP CONTAINER ─── -->
+    <!-- ─── MAIN APP ─── -->
     <main class="flex flex-col min-h-screen bg-[#050b14] text-slate-100 overflow-x-hidden antialiased max-w-md mx-auto px-4 pt-4 pb-24 relative">
 
-        <!-- ─── ONBOARDING VIEW ─── -->
+        <!-- ─── ONBOARDING ─── -->
         <div id="view-onboarding" class="w-full flex-1 flex flex-col justify-between py-4">
             <div>
                 <div class="flex items-center justify-between mb-6">
                     <span id="connection-badge" class="text-xs uppercase font-black tracking-widest text-sparkGold">Local Session</span>
-                    <span id="step-counter" class="text-xs font-mono font-bold text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">Step 1 of 11</span>
+                    <span id="step-counter" class="text-xs font-mono font-bold text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800 hidden">Step 1 of 11</span>
                 </div>
                 <div class="w-full h-1 bg-slate-950 rounded-full overflow-hidden mb-8 border border-slate-900/60">
                     <div id="onboarding-progress" class="h-full bg-gradient-to-r from-sparkSecondary via-sparkGold to-sparkBright w-[9%] transition-all duration-300 ease-out"></div>
                 </div>
             </div>
 
-            <!-- Dynamic slide container -->
             <div id="onboarding-slide-container" class="w-full flex-1 flex flex-col justify-center py-2 animate-fade-in"></div>
 
-            <!-- Navigation buttons -->
             <div class="flex gap-4 items-center justify-between pt-6 mt-4 border-t border-slate-900">
                 <button id="btn-onboard-back" class="bg-slate-950 border border-slate-800 text-slate-400 font-bold px-6 py-4 rounded-2xl active:scale-95 transition-all text-sm hidden">Back</button>
-                <button id="btn-onboard-next" class="flex-1 bg-gradient-to-r from-sparkSecondary to-sparkGold hover:from-sparkGold hover:to-sparkBright text-slate-950 font-black px-6 py-4 rounded-2xl active:scale-[0.98] transition-all text-center text-sm shadow-xl shadow-sparkGold/10">Find your Spark 🚀</button>
+                <button id="btn-onboard-next" class="flex-1 bg-gradient-to-r from-sparkSecondary to-sparkGold hover:from-sparkGold hover:to-sparkBright text-slate-950 font-black px-6 py-4 rounded-2xl active:scale-[0.98] transition-all text-center text-sm shadow-xl shadow-sparkGold/10">Continue</button>
             </div>
         </div>
 
-        <!-- ─── MAIN APP (TABS) ─── -->
-        <div id="view-app-main" class="w-full flex-1 flex flex-col hidden animate-fade-in">
+        <!-- ─── MAIN APP TABS ─── -->
+        <div id="view-app-main" class="w-full flex-1 flex-col hidden animate-fade-in">
 
             <!-- Tab: Match -->
-            <div id="tab-match" class="tab-content w-full flex-1 flex flex-col items-center justify-center">
+            <div id="tab-match" class="tab-content w-full flex-1 flex-col items-center justify-center" style="display:none;">
                 <div class="w-full text-center mb-4">
                     <h2 class="text-2xl font-black text-white tracking-tight">Spark Arena</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Vector frequencies matching on shared values</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Find your perfect friend match</p>
                 </div>
                 <div id="deck-wrapper" class="w-full flex items-center justify-center min-h-[490px]"></div>
             </div>
 
             <!-- Tab: Chats -->
-            <div id="tab-chats" class="tab-content w-full flex-1 flex-col hidden">
+            <div id="tab-chats" class="tab-content w-full flex-1 flex-col hidden" style="display:none;">
                 <h2 class="text-2xl font-black text-white mb-1">Your Connections</h2>
-                <p class="text-xs text-slate-500 mb-6">Mutual matches established via core profile synergies.</p>
+                <p class="text-xs text-slate-500 mb-6">Mutual matches ready to chat</p>
                 <div class="flex flex-col gap-3 overflow-y-auto hide-scrollbar flex-1" id="chats-list-target"></div>
             </div>
 
             <!-- Tab: Profile -->
-            <div id="tab-profile" class="tab-content w-full flex-1 flex-col hidden">
+            <div id="tab-profile" class="tab-content w-full flex-1 flex-col hidden" style="display:none;">
                 <div class="bg-slate-900/60 border border-slate-800 rounded-[2.5rem] p-6 text-center shadow-xl relative overflow-hidden mb-4">
                     <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-sparkSecondary/20 to-sparkGold/20 blur-xl"></div>
                     <img id="my-profile-pic" src="" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-slate-800 shadow-2xl relative z-10 bg-slate-950">
@@ -145,7 +158,7 @@
                     </div>
                     <p id="my-profile-bio" class="text-sm text-slate-400 mt-4 italic max-w-xs mx-auto leading-relaxed border-t border-slate-800 pt-4"></p>
                 </div>
-                <button onclick="localStorage.clear(); window.location.reload();" class="w-full py-4 bg-slate-950 border border-slate-800 hover:border-rose-900/40 hover:bg-rose-950/10 text-slate-500 hover:text-rose-400 text-xs font-bold rounded-2xl transition-all">Reset & Restart Onboarding</button>
+                <button onclick="localStorage.clear(); window.location.reload();" class="w-full py-4 bg-slate-950 border border-slate-800 hover:border-rose-900/40 hover:bg-rose-950/10 text-slate-500 hover:text-rose-400 text-xs font-bold rounded-2xl transition-all">Reset & Restart</button>
             </div>
         </div>
 
@@ -173,7 +186,7 @@
                 <div class="flex items-center gap-3">
                     <img id="chat-header-avatar" src="" class="w-10 h-10 rounded-full object-cover border border-slate-800">
                     <div>
-                        <h4 id="chat-header-name" class="font-bold text-sm text-white">Interactive Loop</h4>
+                        <h4 id="chat-header-name" class="font-bold text-sm text-white"></h4>
                         <p class="text-[10px] font-bold text-emerald-500 tracking-wide uppercase flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Active
                         </p>
@@ -184,7 +197,7 @@
             <div id="chat-messages-box" class="flex-1 p-4 overflow-y-auto hide-scrollbar flex flex-col gap-3 bg-gradient-to-b from-[#050b14] to-slate-950"></div>
             <div class="p-4 bg-slate-950 border-t border-slate-900 mb-2">
                 <div class="relative flex items-center">
-                    <input type="text" id="chat-input-field" placeholder="Send your wave message..." class="w-full bg-[#050b14] border border-slate-800 rounded-2xl pl-4 pr-14 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sparkGold transition-all">
+                    <input type="text" id="chat-input-field" placeholder="Type a message..." class="w-full bg-[#050b14] border border-slate-800 rounded-2xl pl-4 pr-14 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sparkGold transition-all">
                     <button id="btn-send-message" class="absolute right-2 top-2 bottom-2 px-4 bg-sparkGold hover:bg-sparkBright text-slate-950 font-black rounded-xl text-xs active:scale-90 transition-all">Send</button>
                 </div>
             </div>
@@ -195,7 +208,7 @@
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  TELEGRAM INTEGRATION
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        let tgUser = { id: 777123, first_name: "Player One", username: "spark_surfer" };
+        let tgUser = { id: 777123, first_name: "", username: "" };
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
@@ -206,36 +219,35 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  STATE & PERSISTENCE
+        //  STATE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         let state = {
             onboardingStep: 1,
             subQuestionIndex: 0,
             userProfile: {
                 id: tgUser.id,
-                name: tgUser.first_name || "Player One",
-                username: tgUser.username || "spark_user",
-                photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
-                age: 21,
-                gender: "Male",
-                lookingFor: "Anyone",
-                location: "Lagos, Nigeria",
-                bio: "Looking for open-minded techies, gamers, and music heads to kick it with. Let's find common frequencies!",
+                name: "",
+                username: "",
+                photo: "",
+                age: "",
+                gender: "",
+                lookingFor: "",
+                location: "",
+                bio: "",
                 matrixAnswers: [],
                 listAnswers: {}
             },
             mockProfiles: [],
-            likes: [],           // IDs of profiles we've already voted (liked or skipped)
-            incoming: [],        // IDs of profiles that have "liked" us (will be simulated)
-            matches: [],         // IDs where mutual like has occurred
-            chats: {},           // { profileId: [{ sender: 'me'|'them', text: '...' }] }
+            likes: [],
+            incoming: [],
+            matches: [],
+            chats: {},
             currentActiveChatUserId: null,
-            // extra flags
             hasCompletedOnboarding: false
         };
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  QUESTION BANK (20 Questions)
+        //  QUESTIONS
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const QUESTIONS = [
             { type: "matrix", text: "🌙 Do you thrive in the quiet dark or seize the daytime?", options: ["Night owl", "Early bird"] },
@@ -260,16 +272,16 @@
             { type: "multi", text: "❤️ What makes you feel deeply seen in a friendship?", options: ["They remember small details", "They initiate plans", "They check in during hard times", "They give honest feedback", "They celebrate my wins", "They make me laugh", "They respect my boundaries"] }
         ];
 
-        let subQuestionIndex = 0; // will be synced with state
+        let subQuestionIndex = 0;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  MOCK PROFILES (with answers)
+        //  MOCK PROFILES
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function generateMockProfiles() {
             return [
                 {
-                    id: 101, name: "Racheal Adebayo", username: "rach_vibe", age: 22, gender: "Female", location: "Abuja, Nigeria",
-                    bio: "Avid traveler, amateur photographer, and deep conversation lover. Let's explore museums and hidden cafes! ☕📸",
+                    id: 101, name: "Racheal", username: "rach_vibe", age: 22, gender: "Female", location: "Abuja, Nigeria",
+                    bio: "Avid traveler, photographer, and deep conversation lover. Let's explore museums and cafes!",
                     photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400",
                     matrixAnswers: [0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1],
                     listAnswers: {
@@ -281,8 +293,8 @@
                     }
                 },
                 {
-                    id: 102, name: "Chinedu Okafor", username: "neducodes", age: 24, gender: "Male", location: "Lagos, Nigeria",
-                    bio: "Building games by day, playing sports by night. Let's talk code, mechanics, and dark humor. 🎮⚽",
+                    id: 102, name: "Chinedu", username: "neducodes", age: 24, gender: "Male", location: "Lagos, Nigeria",
+                    bio: "Building games by day, playing sports by night. Let's talk code and dark humor.",
                     photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
                     matrixAnswers: [1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0],
                     listAnswers: {
@@ -294,8 +306,8 @@
                     }
                 },
                 {
-                    id: 103, name: "Amara Silva", username: "amara_art", age: 20, gender: "Female", location: "Lekki, Nigeria",
-                    bio: "Aesthetic edits, painting, festivals, and hiking adventures. Looking for clean frequencies and creative souls. ✨🎨",
+                    id: 103, name: "Amara", username: "amara_art", age: 20, gender: "Female", location: "Lekki, Nigeria",
+                    bio: "Aesthetic edits, painting, festivals, and hiking adventures. Looking for creative souls.",
                     photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400",
                     matrixAnswers: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
                     listAnswers: {
@@ -310,7 +322,7 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  SPARK SCORE ENGINE
+        //  SPARK SCORE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function calculateSparkScore(user, target) {
             let abMatches = 0;
@@ -370,13 +382,11 @@
         function initApp() {
             const loaded = loadStateFromStorage();
             if (!loaded) {
-                // First run: seed mock profiles and incoming likes
                 state.mockProfiles = generateMockProfiles();
-                state.incoming = [101, 103]; // these two have "liked" us initially
+                state.incoming = [101, 103];
                 saveStateToStorage();
             }
 
-            // If onboarding already completed, show main app
             if (state.onboardingStep > 11) {
                 document.getElementById('view-onboarding').classList.add('hidden');
                 document.getElementById('view-app-main').classList.remove('hidden');
@@ -397,13 +407,11 @@
             const progress = document.getElementById('onboarding-progress');
             const btnBack = document.getElementById('btn-onboard-back');
             const btnNext = document.getElementById('btn-onboard-next');
-            const stepCounter = document.getElementById('step-counter');
 
             const step = state.onboardingStep;
-            stepCounter.innerText = `Step ${step} of 11`;
             progress.style.width = `${(step / 11) * 100}%`;
             btnBack.style.display = step > 1 ? 'block' : 'none';
-            btnNext.innerText = step === 11 ? "Enter Spark Arena ⚡" : (step === 1 ? "Find your Spark 🚀" : "Continue ➡️");
+            btnNext.innerText = step === 11 ? "Enter Spark Arena ⚡" : (step === 1 ? "Get Started 🚀" : "Continue ➡️");
             container.innerHTML = "";
 
             switch (step) {
@@ -419,27 +427,28 @@
                     container.innerHTML = `
                         <div class="flex flex-col gap-2">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">What should people call you?</label>
-                            <input type="text" id="onboard-input-name" value="${state.userProfile.name || ''}" placeholder="e.g. Player One" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-bold text-lg focus:outline-none focus:border-sparkGold transition-all">
+                            <input type="text" id="onboard-input-name" placeholder="e.g. Alex" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-bold text-lg focus:outline-none focus:border-sparkGold transition-all">
                         </div>`;
                     break;
                 case 3:
                     container.innerHTML = `
                         <div class="flex flex-col gap-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Claim your profile handle</label>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Choose a unique handle</label>
                             <div class="relative">
                                 <span class="absolute left-4 top-4 text-slate-500 font-bold">@</span>
-                                <input type="text" id="onboard-input-username" value="${state.userProfile.username || ''}" placeholder="username" class="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-9 pr-4 py-4 text-white font-semibold text-lg focus:outline-none focus:border-sparkGold transition-all">
+                                <input type="text" id="onboard-input-username" placeholder="username" class="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-9 pr-4 py-4 text-white font-semibold text-lg focus:outline-none focus:border-sparkGold transition-all">
                             </div>
+                            <p class="text-xs text-slate-500 mt-1">3-20 characters, letters, numbers, underscores</p>
                         </div>`;
                     break;
                 case 4:
                     container.innerHTML = `
                         <div class="text-center flex flex-col items-center gap-4">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block w-full text-left">Profile Picture</label>
-                            <img src="${state.userProfile.photo}" class="w-24 h-24 rounded-full object-cover border-4 border-slate-800 bg-slate-900 shadow-xl" id="onboard-avatar-preview">
+                            <img src="" class="w-24 h-24 rounded-full object-cover border-4 border-slate-800 bg-slate-900 shadow-xl" id="onboard-avatar-preview">
                             <div class="grid grid-cols-2 gap-3 w-full">
-                                <button type="button" onclick="useTelegramPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-4 rounded-xl transition">Use Default</button>
-                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-4 rounded-xl transition">Local Upload</button>
+                                <button type="button" onclick="useDefaultPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-4 rounded-xl transition">Use Default</button>
+                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-4 rounded-xl transition">Upload Photo</button>
                             </div>
                             <input type="file" id="galleryInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
                         </div>`;
@@ -448,15 +457,15 @@
                     container.innerHTML = `
                         <div class="flex flex-col gap-2">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">How old are you?</label>
-                            <input type="number" id="onboard-input-age" value="${state.userProfile.age || 21}" min="16" max="99" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-bold text-2xl text-center max-w-[120px] mx-auto focus:outline-none focus:border-sparkGold transition-all">
+                            <input type="number" id="onboard-input-age" placeholder="e.g. 25" min="16" max="99" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-bold text-2xl text-center max-w-[140px] mx-auto focus:outline-none focus:border-sparkGold transition-all">
                         </div>`;
                     break;
                 case 6:
                     container.innerHTML = `
                         <div class="flex flex-col gap-2.5">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Gender Identity</label>
-                            ${["Male", "Female", "Non-binary"].map(g => `
-                                <button onclick="selectGender('${g}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.gender === g ? 'border-sparkGold bg-sparkGold/10 text-white font-bold' : 'border-slate-800 bg-slate-900 text-slate-300'} text-sm transition-all">${g}</button>
+                            ${["Male", "Female", "Non-binary", "Prefer not to say"].map(g => `
+                                <button onclick="selectGender('${g}')" class="w-full p-4 text-left rounded-2xl border border-slate-800 bg-slate-900 text-slate-300 text-sm transition-all hover:border-slate-700">${g}</button>
                             `).join('')}
                         </div>`;
                     break;
@@ -464,16 +473,16 @@
                     container.innerHTML = `
                         <div class="flex flex-col gap-2.5">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Who are you looking for?</label>
-                            ${["Male", "Female", "Anyone"].map(l => `
-                                <button onclick="selectLookingFor('${l}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.lookingFor === l ? 'border-sparkGold bg-sparkGold/10 text-white font-bold' : 'border-slate-800 bg-slate-900 text-slate-300'} text-sm transition-all">${l}</button>
+                            ${["Male", "Female", "Non-binary", "Anyone"].map(l => `
+                                <button onclick="selectLookingFor('${l}')" class="w-full p-4 text-left rounded-2xl border border-slate-800 bg-slate-900 text-slate-300 text-sm transition-all hover:border-slate-700">${l}</button>
                             `).join('')}
                         </div>`;
                     break;
                 case 8:
                     container.innerHTML = `
                         <div class="flex flex-col gap-3">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Location (City)</label>
-                            <input type="text" id="onboard-input-loc" value="${state.userProfile.location}" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-semibold text-md focus:outline-none focus:border-sparkGold">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Location</label>
+                            <input type="text" id="onboard-input-loc" placeholder="e.g. New York, USA" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-semibold text-md focus:outline-none focus:border-sparkGold">
                         </div>`;
                     break;
                 case 9:
@@ -482,16 +491,17 @@
                 case 10:
                     container.innerHTML = `
                         <div class="flex flex-col gap-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Write Your Short Bio</label>
-                            <textarea id="onboard-input-bio" rows="4" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm text-slate-200 focus:outline-none focus:border-sparkGold resize-none" placeholder="Tell potential friends a bit about yourself...">${state.userProfile.bio}</textarea>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Write a short bio</label>
+                            <textarea id="onboard-input-bio" rows="4" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm text-slate-200 focus:outline-none focus:border-sparkGold resize-none" placeholder="What makes you a great friend?"></textarea>
+                            <p class="text-xs text-slate-500 text-right" id="bio-counter">0 / 300</p>
                         </div>`;
                     break;
                 case 11:
                     container.innerHTML = `
                         <div class="text-center flex flex-col items-center gap-4 py-6">
                             <span class="text-6xl animate-bounce">🔥</span>
-                            <h3 class="text-2xl font-black text-white">Profile Configured!</h3>
-                            <p class="text-slate-400 text-sm max-w-xs">Your compatibility vectors have been successfully calibrated.</p>
+                            <h3 class="text-2xl font-black text-white">You're Ready!</h3>
+                            <p class="text-slate-400 text-sm max-w-xs">Your profile is complete. Start matching with people who share your vibe.</p>
                         </div>`;
                     break;
             }
@@ -505,12 +515,12 @@
                 <div class="flex flex-col h-full justify-between">
                     <div>
                         <div class="flex justify-between items-center mb-3">
-                            <span class="text-[10px] font-bold text-sparkGold tracking-wider uppercase bg-sparkGold/10 px-2.5 py-0.5 rounded-full border border-sparkGold/20">Vibe Metrics</span>
-                            <span class="text-xs font-mono font-bold text-slate-500">${subQuestionIndex + 1} / 20</span>
+                            <span class="text-[10px] font-bold text-sparkGold tracking-wider uppercase bg-sparkGold/10 px-2.5 py-0.5 rounded-full border border-sparkGold/20">Question ${subQuestionIndex + 1} of 20</span>
+                            <span class="text-xs font-mono font-bold text-slate-500">${Math.round(((subQuestionIndex + 1) / 20) * 100)}%</span>
                         </div>
                         <h3 class="text-lg font-bold text-slate-100 leading-snug mb-4">${q.text}</h3>
                     </div>
-                    <div class="flex flex-col gap-2.5 max-h-[260px] overflow-y-auto hide-scrollbar py-1">`;
+                    <div class="flex flex-col gap-2.5 max-h-[280px] overflow-y-auto hide-scrollbar py-1">`;
 
             if (isMatrix) {
                 const currentAns = state.userProfile.matrixAnswers[subQuestionIndex];
@@ -534,17 +544,43 @@
 
             html += `</div></div>`;
             container.innerHTML = html;
-            // Update next button text based on type
             document.getElementById('btn-onboard-next').innerText = isMatrix ? "Skip Question ➡️" : "Confirm Selections ➡️";
         }
 
         // ─── Onboarding Handlers ───
-        window.selectGender = function(val) { state.userProfile.gender = val; renderOnboardingStep(); };
-        window.selectLookingFor = function(val) { state.userProfile.lookingFor = val; renderOnboardingStep(); };
+        window.selectGender = function(val) {
+            document.querySelectorAll('#onboarding-slide-container .border-sparkGold').forEach(el => {
+                el.classList.remove('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
+                el.classList.add('border-slate-800', 'bg-slate-900', 'text-slate-300');
+            });
+            const btns = document.querySelectorAll('#onboarding-slide-container .rounded-2xl');
+            btns.forEach((btn, idx) => {
+                if (btn.textContent.trim() === val) {
+                    btn.classList.add('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
+                    btn.classList.remove('border-slate-800', 'bg-slate-900', 'text-slate-300');
+                }
+            });
+            state.userProfile.gender = val;
+        };
 
-        window.useTelegramPhoto = function() {
-            // Telegram does not provide photo_url, so we use a default
+        window.selectLookingFor = function(val) {
+            document.querySelectorAll('#onboarding-slide-container .border-sparkGold').forEach(el => {
+                el.classList.remove('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
+                el.classList.add('border-slate-800', 'bg-slate-900', 'text-slate-300');
+            });
+            const btns = document.querySelectorAll('#onboarding-slide-container .rounded-2xl');
+            btns.forEach((btn, idx) => {
+                if (btn.textContent.trim() === val) {
+                    btn.classList.add('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
+                    btn.classList.remove('border-slate-800', 'bg-slate-900', 'text-slate-300');
+                }
+            });
+            state.userProfile.lookingFor = val;
+        };
+
+        window.useDefaultPhoto = function() {
             state.userProfile.photo = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300";
+            document.getElementById('onboard-avatar-preview').src = state.userProfile.photo;
             renderOnboardingStep();
         };
 
@@ -554,6 +590,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     state.userProfile.photo = e.target.result;
+                    document.getElementById('onboard-avatar-preview').src = state.userProfile.photo;
                     renderOnboardingStep();
                 };
                 reader.readAsDataURL(file);
@@ -591,43 +628,65 @@
                 saveStateToStorage();
                 renderOnboardingStep();
             } else {
-                // All questions done → move to bio step (step 10)
                 state.onboardingStep = 10;
                 saveStateToStorage();
                 renderOnboardingStep();
             }
         }
 
-        // ─── Navigation Buttons ───
+        // ─── Navigation ───
         document.getElementById('btn-onboard-next').onclick = function() {
             const step = state.onboardingStep;
 
-            // Capture inputs
             if (step === 2) {
                 const inp = document.getElementById('onboard-input-name');
-                if (inp && inp.value.trim()) state.userProfile.name = inp.value.trim();
+                if (!inp || !inp.value.trim()) { alert('Please enter your name.'); return; }
+                state.userProfile.name = inp.value.trim();
             }
             if (step === 3) {
                 const inp = document.getElementById('onboard-input-username');
-                if (inp && inp.value.trim()) state.userProfile.username = inp.value.trim();
+                if (!inp || !inp.value.trim()) { alert('Please choose a username.'); return; }
+                const val = inp.value.trim().toLowerCase();
+                if (!/^[a-z0-9_]{3,20}$/.test(val)) {
+                    alert('Username must be 3-20 characters, letters, numbers, underscores only.');
+                    return;
+                }
+                state.userProfile.username = val;
+            }
+            if (step === 4) {
+                if (!state.userProfile.photo) {
+                    state.userProfile.photo = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300";
+                }
             }
             if (step === 5) {
                 const inp = document.getElementById('onboard-input-age');
-                if (inp) state.userProfile.age = parseInt(inp.value) || 21;
+                if (!inp || !inp.value.trim()) { alert('Please enter your age.'); return; }
+                const age = parseInt(inp.value);
+                if (isNaN(age) || age < 16 || age > 99) { alert('Please enter a valid age (16-99).'); return; }
+                state.userProfile.age = age;
+            }
+            if (step === 6) {
+                if (!state.userProfile.gender) { alert('Please select your gender.'); return; }
+            }
+            if (step === 7) {
+                if (!state.userProfile.lookingFor) { alert('Please select who you\'re looking for.'); return; }
             }
             if (step === 8) {
                 const inp = document.getElementById('onboard-input-loc');
-                if (inp) state.userProfile.location = inp.value || 'Unknown';
+                if (!inp || !inp.value.trim()) { alert('Please enter your location.'); return; }
+                state.userProfile.location = inp.value.trim();
             }
-            if (step === 10) {
-                const inp = document.getElementById('onboard-input-bio');
-                if (inp) state.userProfile.bio = inp.value || 'Just a friendly soul!';
-            }
-
-            // Special handling for step 9 (questionnaire)
             if (step === 9) {
                 advanceSubflow();
                 return;
+            }
+            if (step === 10) {
+                const inp = document.getElementById('onboard-input-bio');
+                if (inp && inp.value.trim().length > 0) {
+                    state.userProfile.bio = inp.value.trim();
+                } else {
+                    state.userProfile.bio = "Just a friendly soul looking for connections!";
+                }
             }
 
             if (step < 11) {
@@ -635,7 +694,6 @@
                 saveStateToStorage();
                 renderOnboardingStep();
             } else {
-                // Complete onboarding
                 state.onboardingStep = 12;
                 state.hasCompletedOnboarding = true;
                 saveStateToStorage();
@@ -662,21 +720,41 @@
             }
         };
 
+        // ─── Bio Counter ───
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.id === 'onboard-input-bio') {
+                const counter = document.getElementById('bio-counter');
+                if (counter) {
+                    const len = e.target.value.length;
+                    counter.textContent = `${len} / 300`;
+                    if (len > 300) {
+                        e.target.value = e.target.value.substring(0, 300);
+                        counter.textContent = `300 / 300`;
+                    }
+                }
+            }
+        });
+
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  MAIN APP TABS
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         window.switchTab = function(target) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${target}`).classList.remove('hidden');
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            const tab = document.getElementById(`tab-${target}`);
+            if (tab) tab.style.display = 'flex';
 
             ['nav-btn-match', 'nav-btn-chats', 'nav-btn-profile'].forEach(id => {
                 const btn = document.getElementById(id);
-                btn.classList.remove('text-sparkGold');
-                btn.classList.add('text-slate-500');
+                if (btn) {
+                    btn.classList.remove('text-sparkGold');
+                    btn.classList.add('text-slate-500');
+                }
             });
             const activeBtn = document.getElementById(`nav-btn-${target}`);
-            activeBtn.classList.add('text-sparkGold');
-            activeBtn.classList.remove('text-slate-500');
+            if (activeBtn) {
+                activeBtn.classList.add('text-sparkGold');
+                activeBtn.classList.remove('text-slate-500');
+            }
 
             if (target === 'match') renderDeck();
             if (target === 'profile') renderProfileTab();
@@ -688,19 +766,18 @@
         document.getElementById('nav-btn-profile').onclick = () => switchTab('profile');
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  MATCH TAB – DECK
+        //  MATCH DECK
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function renderDeck() {
             const wrapper = document.getElementById('deck-wrapper');
-            // Profiles not yet voted on
             const available = state.mockProfiles.filter(p => !state.likes.includes(p.id));
 
             if (available.length === 0) {
                 wrapper.innerHTML = `
                     <div class="text-center text-slate-500 p-8 border border-dashed border-slate-800 rounded-3xl bg-slate-950/40 w-full max-w-sm">
                         <span class="text-4xl block mb-2">🌍</span>
-                        <p class="font-bold text-sm text-slate-300">No new profiles nearby</p>
-                        <p class="text-xs text-slate-600 mt-1">Try resetting your preferences in the profile menu tab.</p>
+                        <p class="font-bold text-sm text-slate-300">No new profiles</p>
+                        <p class="text-xs text-slate-600 mt-1">Check back later for new matches!</p>
                     </div>`;
                 return;
             }
@@ -730,14 +807,13 @@
         window.handleVote = function(userId, liked) {
             if (liked) {
                 state.likes.push(userId);
-                // Check if we have an incoming like from this user → mutual match
                 if (state.incoming.includes(userId) && !state.matches.includes(userId)) {
                     state.matches.push(userId);
-                    // Notify user (we'll just show an alert for demo)
-                    alert(`🎉 It's a match! You and ${state.mockProfiles.find(p => p.id === userId).name} are now connected.`);
+                    const name = state.mockProfiles.find(p => p.id === userId)?.name || 'someone';
+                    alert(`🎉 It's a match! You and ${name} are now connected.`);
                 }
             } else {
-                state.likes.push(userId); // skip
+                state.likes.push(userId);
             }
             saveStateToStorage();
             renderDeck();
@@ -746,7 +822,7 @@
         };
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  CHATS TAB
+        //  CHATS
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function renderChatsList() {
             const container = document.getElementById('chats-list-target');
@@ -755,7 +831,7 @@
             if (state.matches.length === 0) {
                 container.innerHTML = `
                     <div class="text-center p-8 text-slate-600 text-xs italic border border-slate-900 rounded-2xl bg-slate-950/20">
-                        No active chat pipelines synced yet. Match with profiles that sparked you to unlock text links!
+                        No active connections yet. Match with someone to start chatting!
                     </div>`;
                 return;
             }
@@ -763,19 +839,19 @@
             state.matches.forEach(id => {
                 const profile = state.mockProfiles.find(p => p.id === id);
                 if (!profile) return;
-                const thread = document.createElement('div');
-                thread.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all";
-                thread.onclick = () => openChatModal(profile);
-                thread.innerHTML = `
+                const div = document.createElement('div');
+                div.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all";
+                div.onclick = () => openChatModal(profile);
+                div.innerHTML = `
                     <div class="flex items-center gap-3">
                         <img class="w-11 h-11 rounded-full object-cover border border-slate-800" src="${profile.photo}">
                         <div>
                             <h4 class="font-bold text-sm text-white">${profile.name}</h4>
-                            <p class="text-xs text-sparkGold font-semibold">✨ Connection active!</p>
+                            <p class="text-xs text-sparkGold font-semibold">✨ Connected</p>
                         </div>
                     </div>
                     <span class="text-slate-600 text-xs font-bold font-mono">➔</span>`;
-                container.appendChild(thread);
+                container.appendChild(div);
             });
         }
 
@@ -791,16 +867,15 @@
             const box = document.getElementById('chat-messages-box');
             box.innerHTML = `
                 <div class="bg-slate-900/40 border border-slate-900 rounded-xl p-3 text-center text-[11px] text-slate-500 max-w-xs mx-auto my-1 font-mono">
-                    🛡️ Connection active. End-to-end messaging enabled.
+                    🔒 Secure connection established
                 </div>`;
 
-            // Load existing messages
             if (state.chats[profile.id]) {
                 state.chats[profile.id].forEach(msg => {
                     appendChatMessage(msg.text, msg.sender === 'me');
                 });
             }
-            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
             box.scrollTop = box.scrollHeight;
         }
 
@@ -814,7 +889,7 @@
         }
 
         document.getElementById('btn-close-chat').onclick = function() {
-            document.getElementById('chat-modal').classList.add('hidden');
+            document.getElementById('chat-modal').style.display = 'none';
             state.currentActiveChatUserId = null;
         };
 
@@ -829,22 +904,20 @@
             const targetId = state.currentActiveChatUserId;
             if (!text || !targetId) return;
 
-            // Save message
             if (!state.chats[targetId]) state.chats[targetId] = [];
             state.chats[targetId].push({ sender: 'me', text });
             appendChatMessage(text, true);
             input.value = '';
             saveStateToStorage();
 
-            // Simulate reply after 1.2s
             setTimeout(() => {
                 if (state.currentActiveChatUserId === targetId) {
                     const replies = [
-                        "That's awesome! Tell me more about that.",
-                        "I totally vibe with that. Let's explore more!",
-                        "Love your energy! We should definitely hang out.",
-                        "Interesting! I've been meaning to try that myself.",
-                        "You're speaking my language. Keep going!"
+                        "That's awesome! Tell me more.",
+                        "I totally vibe with that!",
+                        "Love your energy! Let's connect more.",
+                        "Interesting! I've been meaning to try that.",
+                        "You're speaking my language! Keep going."
                     ];
                     const reply = replies[Math.floor(Math.random() * replies.length)];
                     state.chats[targetId].push({ sender: 'them', text: reply });
@@ -855,27 +928,24 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  PROFILE TAB
+        //  PROFILE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function renderProfileTab() {
             const u = state.userProfile;
-            document.getElementById('my-profile-name').textContent = u.name;
-            document.getElementById('my-profile-handle').textContent = `@${u.username}`;
-            document.getElementById('my-profile-age').textContent = `Age: ${u.age}`;
-            document.getElementById('my-profile-loc').textContent = u.location;
-            document.getElementById('my-profile-bio').textContent = `"${u.bio}"`;
-            document.getElementById('my-profile-pic').src = u.photo;
+            document.getElementById('my-profile-name').textContent = u.name || 'No name set';
+            document.getElementById('my-profile-handle').textContent = u.username ? `@${u.username}` : '@username';
+            document.getElementById('my-profile-age').textContent = u.age ? `Age: ${u.age}` : 'Age not set';
+            document.getElementById('my-profile-loc').textContent = u.location || 'Location not set';
+            document.getElementById('my-profile-bio').textContent = u.bio ? `"${u.bio}"` : 'No bio yet.';
+            document.getElementById('my-profile-pic').src = u.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300';
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  BADGES
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function updateGlobalBadges() {
-            // Incoming count = people who liked us but we haven't liked back
             const incomingCount = state.incoming.filter(id => !state.likes.includes(id)).length;
             document.getElementById('badge-incoming-count').textContent = incomingCount;
-
-            // Chat count = number of matches
             document.getElementById('chat-count').textContent = state.matches.length;
         }
 

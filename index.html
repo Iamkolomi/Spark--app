@@ -18,13 +18,11 @@
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .bubble-me { background: linear-gradient(135deg, #F59E0B, #FBBF24); color: #0f172a; padding: 10px 16px; border-radius: 20px 20px 4px 20px; max-width: 80%; align-self: flex-end; font-weight: 600; box-shadow: 0 4px 12px rgba(245,158,11,0.25); }
         .bubble-them { background: #1e293b; color: #e2e8f0; padding: 10px 16px; border-radius: 20px 20px 20px 4px; max-width: 80%; align-self: flex-start; border: 1px solid #334155; font-weight: 500; }
-        /* Centering match deck */
         #tab-match { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; }
         #deck-wrapper { display: flex; align-items: center; justify-content: center; width: 100%; }
-        /* Selected option highlight */
         .option-selected { border-color: #F59E0B !important; background-color: rgba(245,158,11,0.15) !important; color: white !important; font-weight: 700 !important; }
         .option-selected .checkmark { display: inline-block !important; }
-        .checkmark { display: none; margin-right: 6px; }
+        .checkmark { display: none; margin-right: 6px; color: #F59E0B; }
     </style>
     <script>
         tailwind.config = {
@@ -68,7 +66,7 @@
         <!-- MAIN APP TABS -->
         <div id="view-app-main" class="w-full flex-1 flex-col hidden animate-fade-in">
 
-            <!-- Tab: Match (renamed to Spark) -->
+            <!-- Tab: Match (now just "Spark") -->
             <div id="tab-match" class="tab-content w-full flex-1 flex-col items-center justify-center" style="display:none;">
                 <div class="w-full text-center mb-4">
                     <h2 class="text-2xl font-black text-white tracking-tight">✨ Spark</h2>
@@ -214,7 +212,7 @@
         let subQuestionIndex = 0;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // SAMPLE PROFILES (no "fake" – just sample users)
+        // SAMPLE PROFILES (generated)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function generateSampleProfiles() {
             const names = ["Racheal", "Chinedu", "Amara", "Tolu", "Zara", "Kofi", "Nia", "Elias"];
@@ -265,7 +263,7 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // SPARK SCORE (returns just percentage)
+        // SPARK SCORE (returns percentage)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function calculateSparkScore(user, target) {
             let abMatches = 0;
@@ -320,7 +318,7 @@
             const loaded = loadStateFromStorage();
             if (!loaded) {
                 state.sampleProfiles = generateSampleProfiles();
-                state.incoming = [100, 102]; // two users have "liked" us initially
+                state.incoming = [100, 102];
                 saveStateToStorage();
             }
 
@@ -383,9 +381,10 @@
                         <div class="text-center flex flex-col items-center gap-4">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block w-full text-left">Profile Picture</label>
                             <img src="" class="w-24 h-24 rounded-full object-cover border-4 border-slate-800 bg-slate-900 shadow-xl" id="onboard-avatar-preview">
-                            <div class="grid grid-cols-2 gap-3 w-full">
-                                <button type="button" onclick="useDefaultPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-4 rounded-xl transition">Use Default</button>
-                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-4 rounded-xl transition">Upload Photo</button>
+                            <div class="grid grid-cols-3 gap-3 w-full">
+                                <button type="button" onclick="useTelegramPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Use Telegram</button>
+                                <button type="button" onclick="useDefaultPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Default Avatar</button>
+                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Upload Photo</button>
                             </div>
                             <input type="file" id="galleryInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
                         </div>`;
@@ -481,13 +480,11 @@
 
             html += `</div></div>`;
             container.innerHTML = html;
-            // Update next button text
             document.getElementById('btn-onboard-next').innerText = isMatrix ? "Next ➡️" : "Confirm Selections ➡️";
         }
 
         // ─── Onboarding Handlers ───
         window.selectGender = function(val) {
-            // Remove previous selection
             document.querySelectorAll('#onboarding-slide-container .border-sparkGold').forEach(el => {
                 el.classList.remove('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
                 el.classList.add('border-slate-800', 'bg-slate-900', 'text-slate-300');
@@ -517,6 +514,16 @@
             state.userProfile.lookingFor = val;
         };
 
+        window.useTelegramPhoto = function() {
+            // Telegram doesn't provide photo_url, so we generate a nice avatar with initials
+            const name = state.userProfile.name || tgUser.first_name || 'User';
+            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+            const color = 'F59E0B';
+            const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${color}&color=fff&size=128&font-size=0.5`;
+            state.userProfile.photo = url;
+            document.getElementById('onboard-avatar-preview').src = url;
+        };
+
         window.useDefaultPhoto = function() {
             state.userProfile.photo = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300";
             document.getElementById('onboard-avatar-preview').src = state.userProfile.photo;
@@ -536,9 +543,7 @@
 
         // ─── Matrix: only highlight, no auto-advance ───
         window.handleMatrixAnswer = function(idx) {
-            // Update state
             state.userProfile.matrixAnswers[subQuestionIndex] = idx;
-            // Re-render to show selection
             renderOnboardingStep();
         };
 
@@ -574,7 +579,8 @@
             }
             if (step === 4) {
                 if (!state.userProfile.photo) {
-                    state.userProfile.photo = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300";
+                    // If no photo selected, use default avatar
+                    useDefaultPhoto();
                 }
             }
             if (step === 5) {
@@ -596,7 +602,6 @@
                 state.userProfile.location = inp.value.trim();
             }
             if (step === 9) {
-                // Validate matrix or multi selection
                 const q = QUESTIONS[subQuestionIndex];
                 if (q.type === 'matrix') {
                     if (state.userProfile.matrixAnswers[subQuestionIndex] === undefined) {
@@ -610,7 +615,6 @@
                         return;
                     }
                 }
-                // Move to next question
                 if (subQuestionIndex < QUESTIONS.length - 1) {
                     subQuestionIndex++;
                     state.subQuestionIndex = subQuestionIndex;

@@ -1,905 +1,1041 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>Spark – Friend Matcher</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * { -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #050b14; color: #f8fafc; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes scaleUp { from { transform: scale(0.92); opacity: 0.7; } to { transform: scale(1); opacity: 1; } }
-        .animate-scale-up { animation: scaleUp 0.2s ease-out; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .bubble-me { background: linear-gradient(135deg, #F59E0B, #FBBF24); color: #0f172a; padding: 10px 16px; border-radius: 20px 20px 4px 20px; max-width: 80%; align-self: flex-end; font-weight: 600; box-shadow: 0 4px 12px rgba(245,158,11,0.25); }
-        .bubble-them { background: #1e293b; color: #e2e8f0; padding: 10px 16px; border-radius: 20px 20px 20px 4px; max-width: 80%; align-self: flex-start; border: 1px solid #334155; font-weight: 500; }
-        #tab-match { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; }
-        #deck-wrapper { display: flex; align-items: center; justify-content: center; width: 100%; }
-        .option-selected { border-color: #F59E0B !important; background-color: rgba(245,158,11,0.15) !important; color: white !important; font-weight: 700 !important; }
-        .option-selected .checkmark { display: inline-block !important; }
-        .checkmark { display: none; margin-right: 6px; color: #F59E0B; }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        sparkGold: '#F59E0B',
-                        sparkSecondary: '#D97706',
-                        sparkLight: '#FEF3C7',
-                        sparkDark: '#B45309',
-                        sparkBright: '#FBBF24',
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body>
+```react
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+  User, MessageCircle, Flame, Check, X, ChevronRight, ChevronLeft, 
+  Camera, Settings, Heart, Send, ArrowLeft, Info, Sparkles, Upload
+} from 'lucide-react';
 
-    <main class="flex flex-col min-h-screen bg-[#050b14] text-slate-100 overflow-x-hidden antialiased max-w-md mx-auto px-4 pt-4 pb-24 relative">
+// ==========================================
+// 1. DATA: QUESTIONNAIRE
+// ==========================================
+const AB_QUESTIONS = [
+  ['Night owl', 'Early bird'],
+  ['Recharges in groups', 'Recharges alone'],
+  ['Spontaneous', 'Meticulous'],
+  ['Deep conversations', 'Light banter'],
+  ['Outdoorsy', 'Indoorsy'],
+  ['Try new foods', 'Comfort food'],
+  ['Creative', 'Logical'],
+  ['Big parties', 'Small hangs'],
+  ['Direct/blunt', 'Gentle/diplomatic'],
+  ['Frequent texter', 'Prefers calls'],
+  ['1-on-1 hangs', 'Group hangs'],
+  ['Strictly punctual', 'Go-with-the-flow'],
+  ['Big-picture thinker', 'Detail-oriented'],
+  ['Open about feelings', 'Processes alone'],
+  ['Dry/sarcastic humor', 'Warm/silly humor']
+];
 
-        <!-- ONBOARDING -->
-        <div id="view-onboarding" class="w-full flex-1 flex flex-col justify-between py-4">
+const LIST_QUESTIONS = [
+  { 
+    title: "What hangouts excite you?", 
+    options: ['Nature', 'Eating out', 'Nightlife', 'Cultural', 'Active sports', 'Cozy indoor', 'Shopping', 'Creative', 'Festivals', 'Walking'] 
+  },
+  { 
+    title: "What do you talk about?", 
+    options: ['Life struggles', 'Relationships', 'Career', 'Pop culture', 'Deep philosophy', 'Politics', 'Sports', 'Travel', 'Random nonsense', 'Shared hobbies'] 
+  },
+  { 
+    title: "What's your communication style?", 
+    options: ['Voice notes', 'Short texts', 'Phone calls', 'Video calls', 'Meme sharing', 'In-person only', 'Group chats', 'One-on-one DMs', 'Links', 'Weekly check-ins'] 
+  },
+  { 
+    title: "What's your conflict style?", 
+    options: ['Address immediately', 'Take space', 'Use humor', 'Prefer text', 'Avoid unless dealbreaker', 'Apologize quickly', 'Stand ground', 'Ask third friend', 'Write thoughts', 'Let small things go'] 
+  },
+  { 
+    title: "What makes you feel seen?", 
+    options: ['Remember details', 'Initiate plans', 'Check in', 'Give honest feedback', 'Celebrate wins', 'Reliable', 'Make me laugh', 'Vulnerable', 'Respect boundaries', 'Include me'] 
+  }
+];
+
+// ==========================================
+// 2. MOCK DATA (In-Memory Database)
+// ==========================================
+const generateMockAnswers = () => ({
+  ab: Array.from({ length: 15 }, () => Math.floor(Math.random() * 2)),
+  list: Array.from({ length: 5 }, () => {
+    const selected = [];
+    while(selected.length < Math.floor(Math.random() * 3) + 2) {
+      const rnd = Math.floor(Math.random() * 10);
+      if(!selected.includes(rnd)) selected.push(rnd);
+    }
+    return selected;
+  })
+});
+
+const MOCK_USERS = [
+  { id: 'u1', name: 'Elena', username: 'elenax', age: 24, location: 'New York, USA', bio: 'Looking for someone to explore hidden coffee shops with. I make a great friend because I actually listen and will always hype you up!', photo: 'https://i.pravatar.cc/300?img=47', answers: generateMockAnswers() },
+  { id: 'u2', name: 'Marcus', username: 'marcus_tech', age: 27, location: 'London, UK', bio: 'Tech nerd by day, amateur chef by night. Will cook you pasta if you listen to me rant about movies and games. Always down for late night drives.', photo: 'https://i.pravatar.cc/300?img=11', answers: generateMockAnswers() },
+  { id: 'u3', name: 'Sophia', username: 'sophia_art', age: 22, location: 'Paris, FR', bio: 'Art student. Let\'s go to museums and complain about contemporary art together. I promise to take great photos for your Instagram!', photo: 'https://i.pravatar.cc/300?img=5', answers: generateMockAnswers() },
+  { id: 'u4', name: 'Liam', username: 'liam_hikes', age: 29, location: 'Toronto, CA', bio: 'I talk too much about my dog, but he is very cute. Looking for hiking buddies who don\'t mind getting a little muddy on the trails.', photo: 'https://i.pravatar.cc/300?img=12', answers: generateMockAnswers() },
+  { id: 'u5', name: 'Zoe', username: 'zoe_reads', age: 25, location: 'Berlin, DE', bio: 'Bookworm and coffee addict. I am a fiercely loyal friend who will always remember your birthday and bring you soup when you are sick.', photo: 'https://i.pravatar.cc/300?img=9', answers: generateMockAnswers() }
+];
+
+// ==========================================
+// 3. ALGORITHM: SPARK SCORE
+// ==========================================
+const calculateSparkScore = (userA, userB) => {
+  if (!userA || !userB || !userA.answers || !userB.answers) {
+    return { total: 0, abScore: 0, listScore: 0, sharedAB: 0, sharedInterests: [] };
+  }
+  
+  // A/B Match Score
+  let sharedAB = 0;
+  for (let i = 0; i < 15; i++) {
+    if (userA.answers.ab[i] === userB.answers.ab[i]) sharedAB++;
+  }
+  const abScore = (sharedAB / 15) * 100;
+
+  // List Match Score (Jaccard Similarity Index per question)
+  let listPercentages = [];
+  let sharedInterests = [];
+  
+  for (let i = 0; i < 5; i++) {
+    const listA = userA.answers.list[i] || [];
+    const listB = userB.answers.list[i] || [];
+    const intersection = listA.filter(x => listB.includes(x));
+    const union = [...new Set([...listA, ...listB])];
+    
+    // Collect human-readable shared tags for the UI
+    intersection.forEach(idx => {
+      if(sharedInterests.length < 5) {
+        sharedInterests.push(LIST_QUESTIONS[i].options[idx]);
+      }
+    });
+
+    const overlapScore = union.length === 0 ? 0 : (intersection.length / union.length) * 100;
+    listPercentages.push(overlapScore);
+  }
+  const listScore = listPercentages.reduce((a, b) => a + b, 0) / 5;
+
+  return {
+    total: Math.round((abScore + listScore) / 2),
+    abScore: Math.round(abScore),
+    listScore: Math.round(listScore),
+    sharedAB,
+    sharedInterests
+  };
+};
+
+// ==========================================
+// 4. SHARED UI COMPONENTS
+// ==========================================
+const AppleButton = ({ children, onClick, variant = 'primary', disabled = false, className = '' }) => {
+  const baseStyle = "w-full py-4 rounded-2xl font-bold text-[17px] transition-all duration-200 flex justify-center items-center gap-2";
+  const variants = {
+    primary: "bg-[#007AFF] text-white active:bg-blue-600 shadow-sm",
+    secondary: "bg-gray-100 text-gray-900 dark:bg-[#2C2C2E] dark:text-white active:bg-gray-200 dark:active:bg-gray-700",
+  };
+  
+  return (
+    <button 
+      disabled={disabled} 
+      onClick={onClick} 
+      className={`${baseStyle} ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'} ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+const Input = ({ label, error, ...props }) => (
+  <div className="mb-5 w-full">
+    {label && <label className="block text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 ml-1">{label}</label>}
+    <input 
+      className={`w-full bg-gray-100 dark:bg-[#1C1C1E] text-gray-900 dark:text-white rounded-2xl px-5 py-4 text-[17px] focus:outline-none focus:ring-2 transition-all shadow-inner
+        ${error ? 'focus:ring-red-500 ring-1 ring-red-500' : 'focus:ring-[#007AFF]'}`}
+      {...props}
+    />
+    {error && <p className="text-red-500 text-xs mt-2 ml-2 font-medium">{error}</p>}
+  </div>
+);
+
+// ==========================================
+// 5. MAIN APP COMPONENT
+// ==========================================
+export default function App() {
+  const [theme, setTheme] = useState('light');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('match');
+  
+  // App State Memory
+  const [potentials, setPotentials] = useState([...MOCK_USERS]);
+  const [matches, setMatches] = useState([]);
+  const [incomingRequests, setIncomingRequests] = useState([MOCK_USERS[0], MOCK_USERS[1]]); // Start with a couple mocks
+  const [outgoingRequests, setOutgoingRequests] = useState([]);
+
+  // Setup Telegram Theme
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand();
+      setTheme(tg.colorScheme || 'light');
+      tg.onEvent('themeChanged', () => setTheme(tg.colorScheme || 'light'));
+    } else {
+      setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.className = theme;
+  }, [theme]);
+
+  // Actions
+  const handleLike = (user) => {
+    setPotentials(prev => prev.filter(u => u.id !== user.id));
+    setOutgoingRequests(prev => [...prev, user]);
+    
+    // Simulate instant match 20% of the time for testing
+    if (Math.random() > 0.8) {
+      setTimeout(() => {
+        setOutgoingRequests(prev => prev.filter(u => u.id !== user.id));
+        setMatches(prev => [...prev, user]);
+      }, 1000);
+    }
+  };
+
+  const handleSkip = (user) => {
+    setPotentials(prev => prev.filter(u => u.id !== user.id));
+  };
+
+  const handleAcceptRequest = (user) => {
+    setIncomingRequests(prev => prev.filter(u => u.id !== user.id));
+    setMatches(prev => [...prev, user]);
+  };
+
+  const handleDeclineRequest = (user) => {
+    setIncomingRequests(prev => prev.filter(u => u.id !== user.id));
+  };
+
+  const handleCancelRequest = (user) => {
+     setOutgoingRequests(prev => prev.filter(u => u.id !== user.id));
+  };
+
+  if (!currentUser) {
+    return <OnboardingFlow onComplete={setCurrentUser} />;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-[#F2F2F7] dark:bg-black text-black dark:text-white overflow-hidden flex flex-col font-sans selection:bg-[#007AFF]/30">
+      
+      {/* Dynamic Header */}
+      <div className="pt-12 pb-2 px-6 flex justify-between items-center z-10 bg-[#F2F2F7]/80 dark:bg-black/80 backdrop-blur-md">
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          {activeTab === 'profile' && 'Profile'}
+          {activeTab === 'match' && 'Spark'}
+          {activeTab === 'chats' && 'Chats'}
+        </h1>
+        {activeTab === 'profile' && <Settings size={24} className="text-[#007AFF] cursor-pointer" />}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto pb-28 relative">
+        {activeTab === 'profile' && (
+          <ProfileTab 
+            user={currentUser} 
+            incoming={incomingRequests} 
+            outgoing={outgoingRequests}
+            onAccept={handleAcceptRequest}
+            onDecline={handleDeclineRequest}
+            onCancel={handleCancelRequest}
+          />
+        )}
+        {activeTab === 'match' && (
+          <MatchTab 
+            user={currentUser} 
+            potentials={potentials} 
+            onLike={handleLike} 
+            onSkip={handleSkip} 
+          />
+        )}
+        {activeTab === 'chats' && (
+          <ChatsTab 
+            user={currentUser} 
+            matches={matches} 
+          />
+        )}
+      </div>
+
+      {/* iOS Blurred Bottom Navigation Bar */}
+      <div className="absolute bottom-0 w-full h-24 bg-white/70 dark:bg-[#1C1C1E]/70 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 flex justify-around items-start pt-3 px-4 z-50">
+        <NavButton 
+          icon={<User size={26} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />} 
+          label="Profile" 
+          isActive={activeTab === 'profile'} 
+          onClick={() => setActiveTab('profile')} 
+          badge={incomingRequests.length}
+        />
+        
+        <div className="relative -top-6">
+          <button 
+            onClick={() => setActiveTab('match')}
+            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90 border-4 border-[#F2F2F7] dark:border-black
+              ${activeTab === 'match' ? 'bg-[#007AFF]' : 'bg-gray-300 dark:bg-gray-800'}`}
+          >
+            <Flame size={32} color="white" className={activeTab === 'match' ? 'animate-pulse' : ''} />
+          </button>
+        </div>
+
+        <NavButton 
+          icon={<MessageCircle size={26} strokeWidth={activeTab === 'chats' ? 2.5 : 2} />} 
+          label="Chats" 
+          isActive={activeTab === 'chats'} 
+          onClick={() => setActiveTab('chats')} 
+          badge={0}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// 6. BOTTOM NAVIGATION COMPONENT
+// ==========================================
+const NavButton = ({ icon, label, isActive, onClick, badge }) => (
+  <button onClick={onClick} className="relative flex flex-col items-center justify-center w-20">
+    <div className={`transition-colors duration-200 ${isActive ? 'text-[#007AFF]' : 'text-gray-400 dark:text-gray-500'}`}>
+      {icon}
+    </div>
+    <span className={`text-[11px] mt-1.5 font-medium transition-colors duration-200 ${isActive ? 'text-[#007AFF]' : 'text-gray-400 dark:text-gray-500'}`}>
+      {label}
+    </span>
+    {badge > 0 && (
+      <div className="absolute -top-1 right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-[#1C1C1E]">
+        {badge}
+      </div>
+    )}
+  </button>
+);
+
+// ==========================================
+// 7. TAB: MATCH (Center)
+// ==========================================
+const MatchTab = ({ user, potentials, onLike, onSkip }) => {
+  const [breakdownUser, setBreakdownUser] = useState(null);
+  const [animatingCard, setAnimatingCard] = useState(null);
+
+  if (potentials.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-inner">
+          <Flame size={40} className="text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">You've caught up!</h2>
+        <p className="text-gray-500 text-[17px]">No more potential sparks nearby. Check back later.</p>
+      </div>
+    );
+  }
+
+  const currentProfile = potentials[0];
+  const sparkData = calculateSparkScore(user, currentProfile);
+  const isHighSpark = sparkData.total >= 90;
+
+  const handleAction = (type, profile) => {
+    setAnimatingCard(type);
+    setTimeout(() => {
+      type === 'like' ? onLike(profile) : onSkip(profile);
+      setAnimatingCard(null);
+    }, 300); // Wait for animation
+  };
+
+  const cardStyle = animatingCard === 'like' 
+    ? 'translate-x-full rotate-12 opacity-0' 
+    : animatingCard === 'skip' 
+      ? '-translate-x-full -rotate-12 opacity-0' 
+      : 'translate-x-0 rotate-0 opacity-100';
+
+  return (
+    <div className="h-full w-full flex flex-col items-center px-4 pt-2">
+      {/* Profile Card */}
+      <div className={`relative w-full max-w-[400px] h-[70vh] min-h-[500px] bg-white dark:bg-[#1C1C1E] rounded-[2.5rem] shadow-xl overflow-hidden flex flex-col transition-all duration-300 transform ${cardStyle}`}>
+        
+        {/* Photo Section */}
+        <div className="relative h-[55%] w-full bg-gray-200 dark:bg-gray-800">
+          <img src={currentProfile.photo} alt={currentProfile.name} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+          
+          {/* Spark Score Badge */}
+          <button 
+            onClick={() => setBreakdownUser({ profile: currentProfile, data: sparkData })}
+            className={`absolute top-4 right-4 px-4 py-2 rounded-full backdrop-blur-md flex items-center gap-2 shadow-lg transition-transform active:scale-95 border border-white/20
+              ${isHighSpark ? 'bg-[#FBBF24]/90 text-black' : 'bg-black/40 text-white'}`}
+          >
+            <Flame size={18} className={isHighSpark ? 'text-black' : 'text-[#F59E0B]'} />
+            <span className="font-bold tracking-tight">{sparkData.total}% Spark</span>
+          </button>
+        </div>
+
+        {/* Info Section */}
+        <div className="p-6 flex-1 flex flex-col">
+          <div className="flex justify-between items-start mb-2">
             <div>
-                <div class="flex items-center justify-between mb-6">
-                    <span id="connection-badge" class="text-xs uppercase font-black tracking-widest text-sparkGold">Local Session</span>
-                </div>
-                <div class="w-full h-1 bg-slate-950 rounded-full overflow-hidden mb-8 border border-slate-900/60">
-                    <div id="onboarding-progress" class="h-full bg-gradient-to-r from-sparkSecondary via-sparkGold to-sparkBright w-[9%] transition-all duration-300 ease-out"></div>
-                </div>
+              <h1 className="text-3xl font-extrabold flex items-center gap-2">
+                {currentProfile.name}, {currentProfile.age}
+              </h1>
+              <p className="text-gray-500 font-medium flex items-center gap-1 mt-1">
+                📍 {currentProfile.location}
+              </p>
             </div>
-
-            <div id="onboarding-slide-container" class="w-full flex-1 flex flex-col justify-center py-2 animate-fade-in"></div>
-
-            <div class="flex gap-4 items-center justify-between pt-6 mt-4 border-t border-slate-900">
-                <button id="btn-onboard-back" class="bg-slate-950 border border-slate-800 text-slate-400 font-bold px-6 py-4 rounded-2xl active:scale-95 transition-all text-sm hidden">Back</button>
-                <button id="btn-onboard-next" class="flex-1 bg-gradient-to-r from-sparkSecondary to-sparkGold hover:from-sparkGold hover:to-sparkBright text-slate-950 font-black px-6 py-4 rounded-2xl active:scale-[0.98] transition-all text-center text-sm shadow-xl shadow-sparkGold/10">Continue</button>
+          </div>
+          
+          {/* Shared Interests Tags */}
+          {sparkData.sharedInterests.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3 mb-4">
+              {sparkData.sharedInterests.slice(0, 3).map((tag, i) => (
+                <span key={i} className="px-3 py-1.5 bg-blue-50 text-[#007AFF] dark:bg-[#007AFF]/10 dark:text-[#5E5CE6] rounded-full text-xs font-bold tracking-wide">
+                  {tag}
+                </span>
+              ))}
             </div>
+          )}
+
+          <p className="text-gray-700 dark:text-gray-300 text-[15px] leading-relaxed overflow-y-auto flex-1 font-medium italic">
+            "{currentProfile.bio}"
+          </p>
+
+          {/* Action Buttons */}
+          <div className="flex justify-center items-center gap-6 mt-4 pb-2">
+            <button 
+              onClick={() => handleAction('skip', currentProfile)} 
+              className="w-16 h-16 rounded-full bg-white dark:bg-[#2C2C2E] text-red-500 flex items-center justify-center transition-transform active:scale-90 shadow-lg border border-gray-100 dark:border-gray-800"
+            >
+              <X size={30} strokeWidth={3} />
+            </button>
+            <button 
+              className="w-12 h-12 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#007AFF] flex items-center justify-center transition-transform active:scale-90 shadow-md"
+              onClick={() => alert('Message feature requires mutual match!')}
+            >
+              <MessageCircle size={22} strokeWidth={2.5} />
+            </button>
+            <button 
+              onClick={() => handleAction('like', currentProfile)} 
+              className="w-16 h-16 rounded-full bg-[#007AFF] text-white flex items-center justify-center transition-transform active:scale-90 shadow-lg hover:bg-blue-600 shadow-blue-500/30"
+            >
+              <Heart size={28} strokeWidth={3} fill="currentColor" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Breakdown Modal */}
+      <SparkBreakdownModal 
+        isOpen={!!breakdownUser} 
+        onClose={() => setBreakdownUser(null)} 
+        data={breakdownUser?.data} 
+        profile={breakdownUser?.profile}
+      />
+    </div>
+  );
+};
+
+const SparkBreakdownModal = ({ isOpen, onClose, data, profile }) => {
+  if (!isOpen || !data) return null;
+  const isHighSpark = data.total >= 90;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+      <div className="relative bg-[#F2F2F7] dark:bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
+        <button onClick={onClose} className="absolute top-5 right-5 p-2 bg-gray-200 dark:bg-gray-800 rounded-full text-gray-500 active:scale-90">
+          <X size={20} strokeWidth={3} />
+        </button>
+        
+        <div className="flex flex-col items-center mb-8 mt-2">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 shadow-xl border-4 border-white dark:border-[#2C2C2E]
+            ${isHighSpark ? 'bg-gradient-to-br from-[#F59E0B] to-[#FBBF24]' : 'bg-gradient-to-br from-blue-500 to-blue-400'}`}>
+            <Flame size={40} color="white" fill="currentColor" />
+          </div>
+          <h3 className="text-3xl font-extrabold">{data.total}% Match</h3>
+          <p className="text-gray-500 font-medium">You & {profile?.name}</p>
         </div>
 
-        <!-- MAIN APP TABS -->
-        <div id="view-app-main" class="w-full flex-1 flex-col hidden animate-fade-in">
-
-            <!-- Tab: Match (now just "Spark") -->
-            <div id="tab-match" class="tab-content w-full flex-1 flex-col items-center justify-center" style="display:none;">
-                <div class="w-full text-center mb-4">
-                    <h2 class="text-2xl font-black text-white tracking-tight">✨ Spark</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Find your perfect friend match</p>
-                </div>
-                <div id="deck-wrapper" class="w-full flex items-center justify-center min-h-[480px]"></div>
+        <div className="space-y-6 bg-white dark:bg-[#2C2C2E] rounded-3xl p-5 shadow-sm">
+          {/* A/B Score */}
+          <div>
+            <div className="flex justify-between text-sm font-bold mb-2">
+              <span>Core Values</span>
+              <span className="text-[#007AFF]">{data.sharedAB}/15 Same</span>
             </div>
-
-            <!-- Tab: Chats -->
-            <div id="tab-chats" class="tab-content w-full flex-1 flex-col hidden" style="display:none;">
-                <h2 class="text-2xl font-black text-white mb-1">💬 Connections</h2>
-                <p class="text-xs text-slate-500 mb-6">Mutual matches ready to chat</p>
-                <div class="flex flex-col gap-3 overflow-y-auto hide-scrollbar flex-1" id="chats-list-target"></div>
+            <div className="w-full bg-gray-100 dark:bg-[#1C1C1E] rounded-full h-3.5 overflow-hidden shadow-inner">
+              <div className="bg-[#007AFF] h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${data.abScore}%` }}></div>
             </div>
+          </div>
 
-            <!-- Tab: Profile -->
-            <div id="tab-profile" class="tab-content w-full flex-1 flex-col hidden" style="display:none;">
-                <div class="bg-slate-900/60 border border-slate-800 rounded-[2.5rem] p-6 text-center shadow-xl relative overflow-hidden mb-4">
-                    <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-sparkSecondary/20 to-sparkGold/20 blur-xl"></div>
-                    <img id="my-profile-pic" src="" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-slate-800 shadow-2xl relative z-10 bg-slate-950">
-                    <h3 id="my-profile-name" class="text-xl font-bold text-white mt-3 relative z-10"></h3>
-                    <p id="my-profile-handle" class="text-xs text-sparkGold font-semibold relative z-10"></p>
-                    <div class="flex gap-4 justify-center items-center mt-4 text-xs font-mono text-slate-400">
-                        <span id="my-profile-age" class="bg-slate-950 px-3 py-1 rounded-full border border-slate-800"></span>
-                        <span id="my-profile-loc" class="bg-slate-950 px-3 py-1 rounded-full border border-slate-800"></span>
-                    </div>
-                    <p id="my-profile-bio" class="text-sm text-slate-400 mt-4 italic max-w-xs mx-auto leading-relaxed border-t border-slate-800 pt-4"></p>
-                </div>
-                <button onclick="localStorage.clear(); window.location.reload();" class="w-full py-4 bg-slate-950 border border-slate-800 hover:border-rose-900/40 hover:bg-rose-950/10 text-slate-500 hover:text-rose-400 text-xs font-bold rounded-2xl transition-all">Reset & Restart</button>
+          {/* List Score */}
+          <div>
+            <div className="flex justify-between text-sm font-bold mb-2">
+              <span>Interests Overlap</span>
+              <span className="text-purple-500">{data.listScore}% Match</span>
             </div>
+            <div className="w-full bg-gray-100 dark:bg-[#1C1C1E] rounded-full h-3.5 overflow-hidden shadow-inner">
+              <div className="bg-purple-500 h-full rounded-full transition-all duration-1000 ease-out delay-300" style={{ width: `${data.listScore}%` }}></div>
+            </div>
+          </div>
+
+          {/* Highlights */}
+          {data.sharedInterests.length > 0 && (
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 block">You both selected</span>
+              <div className="flex flex-wrap gap-2">
+                {data.sharedInterests.map((t, i) => (
+                  <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-[#1C1C1E] rounded-xl text-[13px] font-bold text-gray-700 dark:text-gray-300">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+        
+        <AppleButton onClick={onClose} className="mt-6">Got it</AppleButton>
+      </div>
+    </div>
+  );
+};
 
-        <!-- BOTTOM NAV -->
-        <nav id="app-nav-bar" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-950/80 backdrop-blur-xl border-t border-slate-900 px-6 py-4 flex justify-around items-center z-40 rounded-t-[2rem] hidden shadow-2xl">
-            <button id="nav-btn-match" class="flex flex-col items-center gap-1.5 text-sparkGold transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                <span class="text-[10px] font-black tracking-wider uppercase">Spark</span>
-            </button>
-            <button id="nav-btn-chats" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 relative transition-all">
-                <span id="chat-count" class="absolute -top-1 -right-2 bg-gradient-to-r from-sparkSecondary to-sparkGold text-slate-950 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-slate-950">0</span>
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                <span class="text-[10px] font-black tracking-wider uppercase">Messages</span>
-            </button>
-            <button id="nav-btn-profile" class="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 relative transition-all">
-                <span id="badge-incoming-count" class="absolute -top-1 -right-2 bg-rose-600 text-white font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-slate-950">0</span>
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 01-8 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                <span class="text-[10px] font-black tracking-wider uppercase">Profile</span>
-            </button>
-        </nav>
-
-        <!-- CHAT MODAL -->
-        <div id="chat-modal" class="fixed inset-0 z-50 bg-[#050b14] max-w-md mx-auto hidden flex flex-col animate-fade-in">
-            <div class="px-4 py-4 bg-slate-950 border-b border-slate-900 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <img id="chat-header-avatar" src="" class="w-10 h-10 rounded-full object-cover border border-slate-800">
-                    <div>
-                        <h4 id="chat-header-name" class="font-bold text-sm text-white"></h4>
-                        <p class="text-[10px] font-bold text-emerald-500 tracking-wide uppercase flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Active
-                        </p>
-                    </div>
-                </div>
-                <button id="btn-close-chat" class="w-10 h-10 bg-slate-900 border border-slate-800 text-slate-400 font-bold rounded-xl flex items-center justify-center text-sm active:scale-90 transition-all">✕</button>
-            </div>
-            <div id="chat-messages-box" class="flex-1 p-4 overflow-y-auto hide-scrollbar flex flex-col gap-3 bg-gradient-to-b from-[#050b14] to-slate-950"></div>
-            <div class="p-4 bg-slate-950 border-t border-slate-900 mb-2">
-                <div class="relative flex items-center">
-                    <input type="text" id="chat-input-field" placeholder="Type a message..." class="w-full bg-[#050b14] border border-slate-800 rounded-2xl pl-4 pr-14 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sparkGold transition-all">
-                    <button id="btn-send-message" class="absolute right-2 top-2 bottom-2 px-4 bg-sparkGold hover:bg-sparkBright text-slate-950 font-black rounded-xl text-xs active:scale-90 transition-all">Send</button>
-                </div>
-            </div>
+// ==========================================
+// 8. TAB: PROFILE (Left)
+// ==========================================
+const ProfileTab = ({ user, incoming, outgoing, onAccept, onDecline, onCancel }) => {
+  return (
+    <div className="h-full px-4 pt-4 pb-6 overflow-y-auto animate-in fade-in duration-300">
+      
+      {/* Header Info */}
+      <div className="bg-white dark:bg-[#1C1C1E] rounded-[2rem] p-6 shadow-sm mb-6 flex flex-col items-center text-center">
+        <div className="relative mb-4">
+          <img src={user.photo} alt="Profile" className="w-28 h-28 rounded-full object-cover shadow-lg border-4 border-white dark:border-[#2C2C2E]" />
+          <button className="absolute bottom-0 right-0 bg-[#007AFF] p-2.5 rounded-full border-4 border-white dark:border-[#1C1C1E] shadow-md active:scale-90">
+            <Camera size={16} color="white" />
+          </button>
         </div>
-    </main>
+        <h2 className="text-2xl font-extrabold">{user.name}, {user.age}</h2>
+        <p className="text-gray-500 text-[15px] font-medium mb-4">@{user.username}</p>
+        
+        <div className="w-full text-left bg-[#F2F2F7] dark:bg-[#2C2C2E] p-4 rounded-2xl relative">
+          <p className="text-[15px] text-gray-700 dark:text-gray-300 italic font-medium leading-relaxed">"{user.bio}"</p>
+        </div>
+      </div>
 
-    <script>
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // TELEGRAM INTEGRATION
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        let tgUser = { id: 777123, first_name: "", username: "" };
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-            if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-                document.getElementById('connection-badge').innerText = "Telegram Secure";
-            }
-        }
+      {/* Incoming Requests */}
+      <div className="mb-6">
+        <h3 className="text-lg font-extrabold px-2 mb-3 text-gray-900 dark:text-white uppercase tracking-wide text-sm">
+          Friend Requests ({incoming.length})
+        </h3>
+        {incoming.length === 0 ? (
+          <div className="bg-white dark:bg-[#1C1C1E] rounded-[1.5rem] p-6 text-center text-gray-500 text-[15px] font-medium shadow-sm">
+            No new requests right now.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {incoming.map(req => (
+              <div key={req.id} className="bg-white dark:bg-[#1C1C1E] rounded-[1.5rem] p-4 flex items-center shadow-sm gap-4">
+                <img src={req.photo} className="w-14 h-14 rounded-full object-cover shadow-sm" alt="" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-[17px] truncate">{req.name}</h4>
+                  <p className="text-sm font-semibold text-[#F59E0B] flex items-center gap-1">
+                    <Flame size={14} /> {calculateSparkScore(user, req).total}% Match
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => onDecline(req)} className="w-10 h-10 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] flex items-center justify-center text-gray-500 active:scale-90 transition-transform">
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
+                  <button onClick={() => onAccept(req)} className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center text-white active:scale-90 transition-transform shadow-md shadow-blue-500/30">
+                    <Check size={20} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // STATE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        let state = {
-            onboardingStep: 1,
-            subQuestionIndex: 0,
-            userProfile: {
-                id: tgUser.id,
-                name: "",
-                username: "",
-                photo: "",
-                age: "",
-                gender: "",
-                lookingFor: "",
-                location: "",
-                bio: "",
-                matrixAnswers: [],
-                listAnswers: {}
-            },
-            sampleProfiles: [],
-            likes: [],
-            incoming: [],
-            matches: [],
-            chats: {},
-            currentActiveChatUserId: null,
-            hasCompletedOnboarding: false
-        };
+      {/* Outgoing Requests */}
+      {outgoing.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-extrabold px-2 mb-3 text-gray-900 dark:text-white uppercase tracking-wide text-sm">
+            Sent Requests
+          </h3>
+          <div className="space-y-3">
+            {outgoing.map(req => (
+              <div key={req.id} className="bg-white dark:bg-[#1C1C1E] rounded-[1.5rem] p-4 flex items-center shadow-sm gap-4">
+                <img src={req.photo} className="w-12 h-12 rounded-full object-cover shadow-sm grayscale-[30%]" alt="" />
+                <div className="flex-1">
+                  <h4 className="font-bold text-[17px]">{req.name}</h4>
+                  <p className="text-xs text-gray-500 font-medium">Pending</p>
+                </div>
+                <button onClick={() => onCancel(req)} className="px-4 py-2 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] text-red-500 text-sm font-bold active:scale-95 transition-transform">
+                  Cancel
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // QUESTIONS (20)
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const QUESTIONS = [
-            { type: "matrix", text: "🌙 Do you thrive in the quiet dark or seize the daytime?", options: ["Night owl", "Early bird"] },
-            { type: "matrix", text: "🎉 How do you recharge your social battery?", options: ["Recharges in groups", "Recharges alone"] },
-            { type: "matrix", text: "🎲 What's your standard weekend operating speed?", options: ["Spontaneous", "Meticulous"] },
-            { type: "matrix", text: "🧠 What level of discussion keeps you hooked?", options: ["Deep conversations", "Light banter"] },
-            { type: "matrix", text: "🌲 Where do you go to fully decompress?", options: ["Outdoorsy", "Indoorsy"] },
-            { type: "matrix", text: "🍜 What's your relationship with dining out?", options: ["Try new foods", "Comfort food"] },
-            { type: "matrix", text: "🎨 How does your brain process problem solving?", options: ["Creative", "Logical"] },
-            { type: "matrix", text: "🎊 What is your ideal environment to socialise?", options: ["Big parties", "Small hangs"] },
-            { type: "matrix", text: "🗣️ How do you communicate complex feedback?", options: ["Direct/blunt", "Gentle/diplomatic"] },
-            { type: "matrix", text: "📱 What is your digital messaging cadence?", options: ["Frequent texter", "Prefers calls"] },
-            { type: "matrix", text: "👤 What format of hangouts feel most rewarding?", options: ["1-on-1 hangs", "Group hangs"] },
-            { type: "matrix", text: "⏰ What's your arrival philosophy for events?", options: ["Strictly punctual", "Go-with-the-flow"] },
-            { type: "matrix", text: "🌌 How do you map out concepts or strategies?", options: ["Big-picture thinker", "Detail-oriented doer"] },
-            { type: "matrix", text: "💬 What is your dynamic with heavy emotional processing?", options: ["Open about feelings", "Processes alone"] },
-            { type: "matrix", text: "😏 What's your dominant comedic frequency?", options: ["Dry/sarcastic humor", "Warm/silly humor"] },
-            { type: "multi", text: "🍿 What hangouts excite you most? (Select all)", options: ["Nature adventure", "Eating out", "Nightlife", "Cultural stuff", "Active sports", "Cozy indoor", "Shopping", "Creative sessions", "Festivals/events", "Just walking and talking"] },
-            { type: "multi", text: "💬 What do you talk about with close friends?", options: ["Life struggles / mental health", "Relationships / dating", "Career / work / money", "Pop culture / memes", "Deep philosophy / life's meaning", "Politics / social issues", "Sports / fitness", "Travel / bucket lists", "Random nonsense / roasting", "Shared hobbies"] },
-            { type: "multi", text: "📱 How do you prefer to stay in touch?", options: ["Long voice notes", "Short texts throughout the day", "Phone calls", "Video calls", "Meme/reel sharing", "In-person only", "Group chats", "One-on-one DMs"] },
-            { type: "multi", text: "⚡ What's your native conflict resolution style?", options: ["Address it immediately", "Take space, then talk", "Use humor to diffuse", "Prefer text for hard convos", "Avoid unless it's a dealbreaker", "Apologize quickly", "Stand my ground firmly"] },
-            { type: "multi", text: "❤️ What makes you feel deeply seen in a friendship?", options: ["They remember small details", "They initiate plans", "They check in during hard times", "They give honest feedback", "They celebrate my wins", "They make me laugh", "They respect my boundaries"] }
+// ==========================================
+// 9. TAB: CHATS (Right)
+// ==========================================
+const ChatsTab = ({ user, matches }) => {
+  const [activeChat, setActiveChat] = useState(null);
+
+  if (activeChat) {
+    return <ChatRoom currentUser={user} partner={activeChat} onBack={() => setActiveChat(null)} />;
+  }
+
+  return (
+    <div className="h-full px-4 pt-4 pb-6 overflow-y-auto animate-in fade-in duration-300">
+      
+      {matches.length === 0 ? (
+        <div className="h-[60vh] flex flex-col items-center justify-center text-center text-gray-500">
+          <div className="w-20 h-20 bg-gray-200 dark:bg-[#1C1C1E] rounded-full flex items-center justify-center mb-4">
+            <MessageCircle size={40} className="text-gray-400" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">No Matches Yet</h2>
+          <p className="text-[15px]">Keep swiping to find your sparks!</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-[#1C1C1E] rounded-[2rem] overflow-hidden shadow-sm">
+          {matches.map((match, idx) => (
+            <div 
+              key={match.id} 
+              onClick={() => setActiveChat(match)}
+              className={`p-4 flex items-center gap-4 cursor-pointer active:bg-gray-50 dark:active:bg-[#2C2C2E] transition-colors
+                ${idx !== matches.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}
+            >
+              <div className="relative">
+                <img src={match.photo} className="w-14 h-14 rounded-full object-cover" alt="" />
+                <div className="absolute -bottom-1 -right-1 bg-[#FBBF24] w-5 h-5 rounded-full border-2 border-white dark:border-[#1C1C1E] flex items-center justify-center shadow-sm">
+                   <Flame size={10} color="white" fill="currentColor" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-[17px] truncate">{match.name}</h4>
+                <p className="text-[15px] text-gray-500 truncate mt-0.5">Start the conversation! 👋</p>
+              </div>
+              <ChevronRight size={20} className="text-gray-300" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ChatRoom = ({ partner, onBack }) => {
+  const [msg, setMsg] = useState('');
+  const [messages, setMessages] = useState([
+    { id: 1, text: "Hey! Looks like we're a match! 🔥", sender: 'partner', time: '10:00 AM' }
+  ]);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => { scrollToBottom() }, [messages]);
+
+  const send = () => {
+    if(!msg.trim()) return;
+    const newMsg = { id: Date.now(), text: msg, sender: 'me', time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+    setMessages(prev => [...prev, newMsg]);
+    setMsg('');
+    
+    // Mock auto-reply
+    setTimeout(() => {
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        text: "That's awesome! How's your day going? 😊", 
+        sender: 'partner',
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      }]);
+    }, 1500);
+  }
+
+  return (
+    <div className="absolute inset-0 bg-[#F2F2F7] dark:bg-black z-50 flex flex-col animate-in slide-in-from-right duration-300">
+      {/* Header */}
+      <div className="bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-xl pt-12 pb-4 px-4 flex items-center gap-4 shadow-sm z-10 sticky top-0 border-b border-gray-200 dark:border-gray-800">
+        <button onClick={onBack} className="text-[#007AFF] p-1 active:opacity-50">
+          <ArrowLeft size={28} />
+        </button>
+        <img src={partner.photo} className="w-10 h-10 rounded-full object-cover" alt="" />
+        <div className="flex-1">
+          <h2 className="font-bold text-[17px] leading-tight">{partner.name}</h2>
+          <p className="text-[11px] text-[#007AFF] font-semibold">Online</p>
+        </div>
+        <button className="text-[#007AFF] p-1">
+          <Info size={24} />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-6">
+        <div className="text-center text-xs font-semibold text-gray-400 mb-6 uppercase tracking-wider">Today</div>
+        {messages.map((m, index) => {
+          const isMe = m.sender === 'me';
+          return (
+            <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[75%] px-4 py-3 text-[16px] leading-relaxed shadow-sm
+                ${isMe ? 'bg-[#007AFF] text-white rounded-[1.25rem] rounded-br-sm' : 'bg-white dark:bg-[#1C1C1E] text-gray-900 dark:text-white rounded-[1.25rem] rounded-bl-sm'}`}>
+                {m.text}
+              </div>
+              <span className="text-[10px] text-gray-400 mt-1 px-1">{m.time}</span>
+            </div>
+          )
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="bg-[#F2F2F7] dark:bg-black p-4 pb-8 border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
+        <input 
+          type="text" 
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && send()}
+          placeholder="iMessage..."
+          className="flex-1 bg-white dark:bg-[#1C1C1E] rounded-full px-5 py-3.5 text-[16px] focus:outline-none border border-gray-200 dark:border-gray-800 shadow-sm"
+        />
+        <button 
+          onClick={send} 
+          disabled={!msg.trim()}
+          className={`w-11 h-11 rounded-full flex items-center justify-center text-white transition-all
+            ${msg.trim() ? 'bg-[#007AFF] active:scale-90 shadow-md' : 'bg-gray-300 dark:bg-gray-800'}`}
+        >
+          <Send size={18} className="ml-1" strokeWidth={2.5} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
+// 10. ONBOARDING FLOW
+// ==========================================
+const OnboardingFlow = ({ onComplete }) => {
+  const [step, setStep] = useState(0); 
+  const [qStep, setQStep] = useState(0); 
+  
+  const [data, setData] = useState({
+    name: '', username: '', photo: '', age: '', gender: '', lookingFor: '', 
+    location: '', bio: '', answers: { ab: [], list: [[],[],[],[],[]] }
+  });
+
+  const [errors, setErrors] = useState({});
+
+  // Auto-fill from Telegram Environment
+  useEffect(() => {
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (tgUser) {
+      setData(prev => ({
+        ...prev,
+        name: tgUser.first_name || '',
+        username: tgUser.username || '',
+        photo: tgUser.photo_url || 'https://i.pravatar.cc/300?img=60'
+      }));
+    } else {
+      setData(prev => ({...prev, photo: 'https://i.pravatar.cc/300?img=60'}));
+    }
+  }, []);
+
+  const validateAndNext = () => {
+    let newErrors = {};
+    if (step === 1 && !data.name.trim()) newErrors.name = "Name is required";
+    if (step === 2 && !data.username.trim()) newErrors.username = "Username is required";
+    if (step === 4 && (!data.age || data.age < 13 || data.age > 99)) newErrors.age = "Must be between 13 and 99";
+    if (step === 7 && !data.location.trim()) newErrors.location = "Location is required";
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    setErrors({});
+    setStep(prev => prev + 1);
+  };
+
+  const finish = () => {
+    if(data.bio.length < 150) {
+      setErrors({ bio: "Please write at least 150 characters." });
+      return;
+    }
+    onComplete({ ...data, id: 'currentUser' });
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setData(prev => ({ ...prev, photo: URL.createObjectURL(file) }));
+    }
+  };
+
+  const handleABAnswer = (choiceIndex) => {
+    const newAB = [...data.answers.ab];
+    newAB[qStep] = choiceIndex;
+    setData(prev => ({...prev, answers: {...prev.answers, ab: newAB}}));
+    
+    setTimeout(() => {
+      if(qStep < 19) setQStep(prev => prev + 1);
+      else validateAndNext();
+    }, 250);
+  };
+
+  const handleListToggle = (optionIndex) => {
+    const listIndex = qStep - 15;
+    const currentSelections = [...data.answers.list[listIndex]];
+    
+    if (currentSelections.includes(optionIndex)) {
+      setData(prev => {
+        const newList = [...prev.answers.list];
+        newList[listIndex] = currentSelections.filter(i => i !== optionIndex);
+        return {...prev, answers: {...prev.answers, list: newList}};
+      });
+    } else {
+      if(currentSelections.length >= 5) return; // Limit 5
+      setData(prev => {
+        const newList = [...prev.answers.list];
+        newList[listIndex] = [...currentSelections, optionIndex];
+        return {...prev, answers: {...prev.answers, list: newList}};
+      });
+    }
+  };
+
+  const renderStep = () => {
+    switch(step) {
+      case 0:
+        return (
+          <div className="h-full flex flex-col justify-center items-center text-center px-6 animate-in fade-in duration-700">
+            <div className="w-28 h-28 bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl rotate-6 border-4 border-white dark:border-[#1C1C1E]">
+              <Sparkles size={60} color="white" />
+            </div>
+            <h1 className="text-4xl font-extrabold mb-4 tracking-tight">Find your Spark</h1>
+            <p className="text-[17px] text-gray-500 font-medium mb-12 max-w-[280px]">Answer deep questions, find people you actually connect with.</p>
+            <div className="w-full">
+              <AppleButton onClick={validateAndNext}>Get Started</AppleButton>
+            </div>
+          </div>
+        );
+      
+      // Text Input Steps
+      case 1:
+      case 2:
+      case 4:
+      case 7:
+        const fields = [
+          null,
+          { key: 'name', label: "What's your display name?", type: 'text', placeholder: 'e.g. Alex' },
+          { key: 'username', label: "Choose a username", type: 'text', placeholder: 'e.g. alex_123' },
+          null, 
+          { key: 'age', label: "How old are you?", type: 'number', placeholder: 'e.g. 24' },
+          null, null,
+          { key: 'location', label: "Where are you based?", type: 'text', placeholder: 'City, Country' }
         ];
+        const field = fields[step];
+        return (
+          <div className="h-full flex flex-col px-6 pt-16 animate-in slide-in-from-right duration-300">
+            <h2 className="text-3xl font-extrabold mb-8">{field.label}</h2>
+            <Input 
+              type={field.type} 
+              placeholder={field.placeholder} 
+              value={data[field.key]} 
+              onChange={e => {
+                setData({...data, [field.key]: e.target.value});
+                setErrors({});
+              }}
+              error={errors[field.key]}
+              autoFocus
+            />
+            <div className="mt-auto mb-10">
+              <AppleButton onClick={validateAndNext}>Continue</AppleButton>
+            </div>
+          </div>
+        );
+      
+      // Photo Upload
+      case 3:
+        return (
+           <div className="h-full flex flex-col items-center px-6 pt-16 animate-in slide-in-from-right duration-300 text-center">
+            <h2 className="text-3xl font-extrabold mb-8">Add a photo</h2>
+            <div className="relative mb-12">
+              <img src={data.photo} alt="Upload" className="w-48 h-48 rounded-full object-cover bg-gray-200 dark:bg-gray-800 shadow-xl border-4 border-white dark:border-[#1C1C1E]" />
+              
+              <label className="absolute bottom-2 right-2 w-14 h-14 bg-[#007AFF] text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border-4 border-white dark:border-black cursor-pointer">
+                <Upload size={24} />
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+              </label>
+            </div>
+            <p className="text-gray-500 font-medium mb-auto">Make sure your face is visible!</p>
+            <div className="w-full mb-10 mt-auto">
+              <AppleButton onClick={validateAndNext}>Looks Good</AppleButton>
+            </div>
+          </div>
+        );
+      
+      // Option Selection Steps
+      case 5:
+      case 6:
+        const opts = step === 5 
+          ? { title: "I identify as", choices: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], key: 'gender' }
+          : { title: "I'm looking for", choices: ['Male', 'Female', 'Non-binary', 'Anyone'], key: 'lookingFor' };
+        
+        return (
+          <div className="h-full flex flex-col px-6 pt-16 animate-in slide-in-from-right duration-300">
+            <h2 className="text-3xl font-extrabold mb-8">{opts.title}</h2>
+            <div className="space-y-4">
+              {opts.choices.map(c => (
+                <button 
+                  key={c}
+                  onClick={() => { setData({...data, [opts.key]: c}); setTimeout(validateAndNext, 250); }}
+                  className={`w-full py-5 px-6 text-left rounded-2xl font-bold text-[17px] transition-all border-2 
+                    ${data[opts.key] === c 
+                      ? 'border-[#007AFF] bg-blue-50 dark:bg-[#007AFF]/20 text-[#007AFF] shadow-sm' 
+                      : 'border-transparent bg-white dark:bg-[#1C1C1E] text-gray-900 dark:text-white shadow-sm'}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      
+      // Questionnaire (20 Questions)
+      case 8:
+        const progress = ((qStep) / 20) * 100;
+        
+        if (qStep < 15) {
+          // A/B Questionnaire
+          const q = AB_QUESTIONS[qStep];
+          return (
+             <div className="h-full flex flex-col px-6 pt-16 pb-10 bg-[#F2F2F7] dark:bg-black animate-in fade-in duration-300">
+                <div className="w-full bg-gray-200 dark:bg-[#1C1C1E] rounded-full h-2 mb-10 overflow-hidden">
+                  <div className="bg-[#007AFF] h-full rounded-full transition-all duration-300 ease-out" style={{width: `${progress}%`}}></div>
+                </div>
+                <h2 className="text-3xl font-extrabold mb-12 text-center tracking-tight">Which sounds more like you?</h2>
+                
+                <div className="flex-1 flex flex-col gap-5">
+                  {[0, 1].map(idx => (
+                    <button 
+                      key={idx}
+                      onClick={() => handleABAnswer(idx)}
+                      className={`flex-1 bg-white dark:bg-[#1C1C1E] rounded-[2rem] shadow-sm border-2 transition-all active:scale-[0.98] flex items-center justify-center p-6
+                        ${data.answers.ab[qStep] === idx ? 'border-[#007AFF]' : 'border-transparent'}`}
+                    >
+                      <span className="text-2xl font-bold text-center leading-tight">{q[idx]}</span>
+                    </button>
+                  ))}
+                </div>
+             </div>
+          );
+        } else {
+          // List Questionnaire
+          const listIndex = qStep - 15;
+          const q = LIST_QUESTIONS[listIndex];
+          const currentSelections = data.answers.list[listIndex];
+          
+          return (
+             <div className="h-full flex flex-col px-6 pt-16 pb-8 bg-[#F2F2F7] dark:bg-black animate-in slide-in-from-right duration-300">
+                <div className="w-full bg-gray-200 dark:bg-[#1C1C1E] rounded-full h-2 mb-8 overflow-hidden">
+                  <div className="bg-[#007AFF] h-full rounded-full transition-all duration-300 ease-out" style={{width: `${progress}%`}}></div>
+                </div>
+                <h2 className="text-2xl font-extrabold mb-2">{q.title}</h2>
+                <p className="text-gray-500 font-semibold mb-6">Select up to 5 ({currentSelections.length}/5)</p>
+                
+                <div className="flex-1 overflow-y-auto mb-4 space-y-3 pb-10 hide-scrollbar">
+                  {q.options.map((opt, idx) => {
+                    const isSelected = currentSelections.includes(idx);
+                    const isDisabled = !isSelected && currentSelections.length >= 5;
+                    return (
+                      <button 
+                        key={idx}
+                        onClick={() => handleListToggle(idx)}
+                        disabled={isDisabled}
+                        className={`w-full py-4 px-5 text-left rounded-2xl font-bold text-[17px] transition-all border-2 flex justify-between items-center
+                          ${isSelected 
+                            ? 'border-[#007AFF] bg-blue-50 dark:bg-[#007AFF]/20 text-[#007AFF] shadow-sm' 
+                            : 'border-transparent bg-white dark:bg-[#1C1C1E] shadow-sm'}
+                          ${isDisabled ? 'opacity-50' : ''}`}
+                      >
+                        {opt}
+                        {isSelected && <Check size={20} strokeWidth={3} />}
+                      </button>
+                    )
+                  })}
+                </div>
 
-        let subQuestionIndex = 0;
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // SAMPLE PROFILES (generated)
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function generateSampleProfiles() {
-            const names = ["Racheal", "Chinedu", "Amara", "Tolu", "Zara", "Kofi", "Nia", "Elias"];
-            const locations = ["Abuja, Nigeria", "Lagos, Nigeria", "Lekki, Nigeria", "Accra, Ghana", "Nairobi, Kenya", "Cape Town, SA"];
-            const bios = [
-                "Adventurer, photographer, and deep conversation lover.",
-                "Tech enthusiast, gamer, and sports fan.",
-                "Creative soul, festival-goer, and hiking buddy.",
-                "Bookworm, foodie, and weekend explorer.",
-                "Music producer, night owl, and coffee addict.",
-                "Yoga teacher, nature lover, and wellness advocate.",
-                "Startup founder, problem solver, and travel junkie.",
-                "Artist, dreamer, and endless optimist."
-            ];
-            const photos = [
-                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
-                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
-                "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
-                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300",
-                "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300",
-                "https://images.unsplash.com/photo-1504297050568-910d24c426d3?w=300",
-                "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=300",
-                "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=300"
-            ];
-            let profiles = [];
-            for (let i = 0; i < 4; i++) {
-                const idx = i % names.length;
-                profiles.push({
-                    id: 100 + i,
-                    name: names[idx],
-                    username: names[idx].toLowerCase() + "_" + Math.random().toString(36).substring(2,6),
-                    age: 20 + Math.floor(Math.random() * 8),
-                    gender: i % 2 === 0 ? "Female" : "Male",
-                    location: locations[i % locations.length],
-                    bio: bios[i % bios.length],
-                    photo: photos[i % photos.length],
-                    matrixAnswers: Array.from({ length: 15 }, () => Math.random() > 0.5 ? 0 : 1),
-                    listAnswers: {
-                        "15": ["Eating out", "Cultural stuff", "Just walking and talking"].slice(0, 2 + Math.floor(Math.random()*2)),
-                        "16": ["Relationships / dating", "Pop culture / memes", "Deep philosophy / life's meaning"].slice(0, 2 + Math.floor(Math.random()*2)),
-                        "17": ["Short texts throughout the day", "Meme/reel sharing"].slice(0, 1 + Math.floor(Math.random()*2)),
-                        "18": ["Take space, then talk", "Use humor to diffuse"].slice(0, 1 + Math.floor(Math.random()*2)),
-                        "19": ["They remember small details", "They make me laugh"].slice(0, 1 + Math.floor(Math.random()*2))
-                    }
-                });
-            }
-            return profiles;
+                <div className="pt-2">
+                  <AppleButton 
+                    disabled={currentSelections.length === 0}
+                    onClick={() => {
+                      if (qStep < 19) setQStep(prev => prev + 1);
+                      else validateAndNext();
+                    }}
+                  >
+                    {qStep < 19 ? 'Next' : 'Calculate My Spark'}
+                  </AppleButton>
+                </div>
+             </div>
+          );
         }
+      
+      // Bio
+      case 9:
+        return (
+          <div className="h-full flex flex-col px-6 pt-16 animate-in slide-in-from-right duration-300 bg-[#F2F2F7] dark:bg-black">
+            <h2 className="text-3xl font-extrabold mb-3">Your Bio</h2>
+            <p className="text-gray-500 font-medium mb-6">What makes you a great friend?</p>
+            
+            <div className="relative">
+              <textarea 
+                className={`w-full h-56 bg-white dark:bg-[#1C1C1E] rounded-[2rem] p-6 focus:outline-none focus:ring-2 resize-none text-[17px] shadow-sm font-medium leading-relaxed
+                  ${errors.bio ? 'ring-2 ring-red-500' : 'focus:ring-[#007AFF]'}`}
+                placeholder="I make great playlists, I'll always tell you if you have food in your teeth, and I'm always down for a late-night drive..."
+                value={data.bio}
+                onChange={e => {
+                  setData({...data, bio: e.target.value});
+                  setErrors({});
+                }}
+                maxLength={300}
+              />
+              <p className={`absolute bottom-4 right-6 text-sm font-bold ${data.bio.length < 150 ? 'text-red-400' : 'text-gray-400'}`}>
+                {data.bio.length}/300
+              </p>
+            </div>
+            
+            {errors.bio && <p className="text-red-500 text-sm mt-3 font-semibold ml-2">{errors.bio}</p>}
+            <p className="text-gray-500 text-sm mt-4 font-medium ml-2">Minimum 150 characters.</p>
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // SPARK SCORE (returns percentage)
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function calculateSparkScore(user, target) {
-            let abMatches = 0;
-            for (let i = 0; i < 15; i++) {
-                if (user.matrixAnswers[i] === target.matrixAnswers[i]) abMatches++;
-            }
-            const abScore = (abMatches / 15) * 100;
+            <div className="mt-auto mb-10">
+              <AppleButton onClick={finish} disabled={data.bio.length < 150}>Complete Profile</AppleButton>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
-            let totalListIntersectionPct = 0;
-            for (let qIdx = 15; qIdx <= 19; qIdx++) {
-                const arrA = user.listAnswers[qIdx] || [];
-                const arrB = target.listAnswers[qIdx] || [];
-                if (arrA.length === 0 && arrB.length === 0) {
-                    totalListIntersectionPct += 100;
-                    continue;
-                }
-                const setB = new Set(arrB);
-                const intersection = arrA.filter(x => setB.has(x));
-                const totalUnique = new Set([...arrA, ...arrB]).size;
-                totalListIntersectionPct += totalUnique > 0 ? (intersection.length / totalUnique) * 100 : 0;
-            }
-            const listScore = totalListIntersectionPct / 5;
-            const sparkScore = (abScore * 0.5) + (listScore * 0.5);
-            return Math.round(sparkScore);
-        }
+  return (
+    <div className="fixed inset-0 bg-[#F2F2F7] dark:bg-black text-black dark:text-white font-sans overflow-hidden z-50">
+      {/* Dynamic Back Button */}
+      {step > 0 && step !== 8 && (
+        <button onClick={() => setStep(prev => prev - 1)} className="absolute top-5 left-4 p-2 z-10 text-[#007AFF] active:opacity-50">
+          <ArrowLeft size={28} />
+        </button>
+      )}
+      {step === 8 && qStep > 0 && (
+         <button onClick={() => setQStep(prev => prev - 1)} className="absolute top-5 left-4 p-2 z-10 text-[#007AFF] active:opacity-50">
+          <ArrowLeft size={28} />
+        </button>
+      )}
+      
+      {renderStep()}
+    </div>
+  );
+}
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // PERSISTENCE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function saveStateToStorage() {
-            state.subQuestionIndex = subQuestionIndex;
-            localStorage.setItem('spark_app_state_2026', JSON.stringify(state));
-        }
-
-        function loadStateFromStorage() {
-            const saved = localStorage.getItem('spark_app_state_2026');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    Object.assign(state, parsed);
-                    subQuestionIndex = state.subQuestionIndex || 0;
-                    return true;
-                } catch (e) { /* fall through */ }
-            }
-            return false;
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // INIT
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function initApp() {
-            const loaded = loadStateFromStorage();
-            if (!loaded) {
-                state.sampleProfiles = generateSampleProfiles();
-                state.incoming = [100, 102];
-                saveStateToStorage();
-            }
-
-            if (state.onboardingStep > 11) {
-                document.getElementById('view-onboarding').classList.add('hidden');
-                document.getElementById('view-app-main').classList.remove('hidden');
-                document.getElementById('app-nav-bar').classList.remove('hidden');
-                switchTab('match');
-            } else {
-                renderOnboardingStep();
-            }
-            updateGlobalBadges();
-            renderChatsList();
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ONBOARDING RENDER
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderOnboardingStep() {
-            const container = document.getElementById('onboarding-slide-container');
-            const progress = document.getElementById('onboarding-progress');
-            const btnBack = document.getElementById('btn-onboard-back');
-            const btnNext = document.getElementById('btn-onboard-next');
-
-            const step = state.onboardingStep;
-            progress.style.width = `${(step / 11) * 100}%`;
-            btnBack.style.display = step > 1 ? 'block' : 'none';
-            btnNext.innerText = step === 11 ? "Enter Spark ⚡" : (step === 1 ? "Get Started 🚀" : "Continue ➡️");
-            container.innerHTML = "";
-
-            switch (step) {
-                case 1:
-                    container.innerHTML = `
-                        <div class="text-center flex flex-col items-center gap-4">
-                            <span class="text-7xl animate-pulse">✨</span>
-                            <h2 class="text-3xl font-black tracking-tight text-white">Find Your Spark</h2>
-                            <p class="text-slate-400 max-w-xs text-sm leading-relaxed">Skip superficial small talk. Match on values, interests, and conversational compatibility instantly.</p>
-                        </div>`;
-                    break;
-                case 2:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">What should people call you?</label>
-                            <input type="text" id="onboard-input-name" placeholder="e.g. Alex" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-bold text-lg focus:outline-none focus:border-sparkGold transition-all">
-                        </div>`;
-                    break;
-                case 3:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Choose a unique handle</label>
-                            <div class="relative">
-                                <span class="absolute left-4 top-4 text-slate-500 font-bold">@</span>
-                                <input type="text" id="onboard-input-username" placeholder="username" class="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-9 pr-4 py-4 text-white font-semibold text-lg focus:outline-none focus:border-sparkGold transition-all">
-                            </div>
-                            <p class="text-xs text-slate-500 mt-1">3-20 characters, letters, numbers, underscores</p>
-                        </div>`;
-                    break;
-                case 4:
-                    container.innerHTML = `
-                        <div class="text-center flex flex-col items-center gap-4">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block w-full text-left">Profile Picture</label>
-                            <img src="" class="w-24 h-24 rounded-full object-cover border-4 border-slate-800 bg-slate-900 shadow-xl" id="onboard-avatar-preview">
-                            <div class="grid grid-cols-3 gap-3 w-full">
-                                <button type="button" onclick="useTelegramPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Use Telegram</button>
-                                <button type="button" onclick="useDefaultPhoto()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Default Avatar</button>
-                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Upload Photo</button>
-                            </div>
-                            <input type="file" id="galleryInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
-                        </div>`;
-                    break;
-                case 5:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">How old are you?</label>
-                            <input type="number" id="onboard-input-age" placeholder="e.g. 25" min="16" max="99" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-bold text-2xl text-center max-w-[140px] mx-auto focus:outline-none focus:border-sparkGold transition-all">
-                        </div>`;
-                    break;
-                case 6:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-2.5">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Gender Identity</label>
-                            ${["Male", "Female", "Non-binary", "Prefer not to say"].map(g => `
-                                <button onclick="selectGender('${g}')" class="w-full p-4 text-left rounded-2xl border border-slate-800 bg-slate-900 text-slate-300 text-sm transition-all hover:border-slate-700">${g}</button>
-                            `).join('')}
-                        </div>`;
-                    break;
-                case 7:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-2.5">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Who are you looking for?</label>
-                            ${["Male", "Female", "Non-binary", "Anyone"].map(l => `
-                                <button onclick="selectLookingFor('${l}')" class="w-full p-4 text-left rounded-2xl border border-slate-800 bg-slate-900 text-slate-300 text-sm transition-all hover:border-slate-700">${l}</button>
-                            `).join('')}
-                        </div>`;
-                    break;
-                case 8:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-3">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Location</label>
-                            <input type="text" id="onboard-input-loc" placeholder="e.g. New York, USA" class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-white font-semibold text-md focus:outline-none focus:border-sparkGold">
-                        </div>`;
-                    break;
-                case 9:
-                    renderQuestionnaireSubflow(container);
-                    break;
-                case 10:
-                    container.innerHTML = `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Write a short bio</label>
-                            <textarea id="onboard-input-bio" rows="4" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm text-slate-200 focus:outline-none focus:border-sparkGold resize-none" placeholder="What makes you a great friend?"></textarea>
-                            <p class="text-xs text-slate-500 text-right" id="bio-counter">0 / 300</p>
-                        </div>`;
-                    break;
-                case 11:
-                    container.innerHTML = `
-                        <div class="text-center flex flex-col items-center gap-4 py-6">
-                            <span class="text-6xl animate-bounce">🔥</span>
-                            <h3 class="text-2xl font-black text-white">You're Ready!</h3>
-                            <p class="text-slate-400 text-sm max-w-xs">Your profile is complete. Start matching with people who share your vibe.</p>
-                        </div>`;
-                    break;
-            }
-        }
-
-        function renderQuestionnaireSubflow(container) {
-            const q = QUESTIONS[subQuestionIndex];
-            const isMatrix = q.type === "matrix";
-
-            let html = `
-                <div class="flex flex-col h-full justify-between">
-                    <div>
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-[10px] font-bold text-sparkGold tracking-wider uppercase bg-sparkGold/10 px-2.5 py-0.5 rounded-full border border-sparkGold/20">Question ${subQuestionIndex + 1} of 20</span>
-                            <span class="text-xs font-mono font-bold text-slate-500">${Math.round(((subQuestionIndex + 1) / 20) * 100)}%</span>
-                        </div>
-                        <h3 class="text-lg font-bold text-slate-100 leading-snug mb-4">${q.text}</h3>
-                    </div>
-                    <div class="flex flex-col gap-2.5 max-h-[280px] overflow-y-auto hide-scrollbar py-1">`;
-
-            if (isMatrix) {
-                const currentAns = state.userProfile.matrixAnswers[subQuestionIndex];
-                q.options.forEach((opt, idx) => {
-                    const isSelected = (currentAns === idx);
-                    html += `
-                        <button onclick="handleMatrixAnswer(${idx})" class="w-full p-4 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-sparkGold bg-sparkGold/10 text-white font-bold' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'}">
-                            <span class="checkmark text-sparkGold">✓</span> ${opt}
-                        </button>`;
-                });
-            } else {
-                const currentSelections = state.userProfile.listAnswers[subQuestionIndex] || [];
-                q.options.forEach(opt => {
-                    const isSelected = currentSelections.includes(opt);
-                    html += `
-                        <button onclick="handleMultiAnswer('${opt}')" class="w-full p-3.5 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-sparkBright bg-sparkSecondary/20 text-white font-bold' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'}">
-                            <span class="checkmark text-sparkGold">✓</span> ${opt}
-                        </button>`;
-                });
-            }
-
-            html += `</div></div>`;
-            container.innerHTML = html;
-            document.getElementById('btn-onboard-next').innerText = isMatrix ? "Next ➡️" : "Confirm Selections ➡️";
-        }
-
-        // ─── Onboarding Handlers ───
-        window.selectGender = function(val) {
-            document.querySelectorAll('#onboarding-slide-container .border-sparkGold').forEach(el => {
-                el.classList.remove('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
-                el.classList.add('border-slate-800', 'bg-slate-900', 'text-slate-300');
-            });
-            const btns = document.querySelectorAll('#onboarding-slide-container .rounded-2xl');
-            btns.forEach((btn) => {
-                if (btn.textContent.trim() === val) {
-                    btn.classList.add('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
-                    btn.classList.remove('border-slate-800', 'bg-slate-900', 'text-slate-300');
-                }
-            });
-            state.userProfile.gender = val;
-        };
-
-        window.selectLookingFor = function(val) {
-            document.querySelectorAll('#onboarding-slide-container .border-sparkGold').forEach(el => {
-                el.classList.remove('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
-                el.classList.add('border-slate-800', 'bg-slate-900', 'text-slate-300');
-            });
-            const btns = document.querySelectorAll('#onboarding-slide-container .rounded-2xl');
-            btns.forEach((btn) => {
-                if (btn.textContent.trim() === val) {
-                    btn.classList.add('border-sparkGold', 'bg-sparkGold/10', 'text-white', 'font-bold');
-                    btn.classList.remove('border-slate-800', 'bg-slate-900', 'text-slate-300');
-                }
-            });
-            state.userProfile.lookingFor = val;
-        };
-
-        window.useTelegramPhoto = function() {
-            // Telegram doesn't provide photo_url, so we generate a nice avatar with initials
-            const name = state.userProfile.name || tgUser.first_name || 'User';
-            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
-            const color = 'F59E0B';
-            const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${color}&color=fff&size=128&font-size=0.5`;
-            state.userProfile.photo = url;
-            document.getElementById('onboard-avatar-preview').src = url;
-        };
-
-        window.useDefaultPhoto = function() {
-            state.userProfile.photo = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300";
-            document.getElementById('onboard-avatar-preview').src = state.userProfile.photo;
-        };
-
-        window.handleFileSelect = function(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    state.userProfile.photo = e.target.result;
-                    document.getElementById('onboard-avatar-preview').src = state.userProfile.photo;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        // ─── Matrix: only highlight, no auto-advance ───
-        window.handleMatrixAnswer = function(idx) {
-            state.userProfile.matrixAnswers[subQuestionIndex] = idx;
-            renderOnboardingStep();
-        };
-
-        window.handleMultiAnswer = function(opt) {
-            if (!state.userProfile.listAnswers[subQuestionIndex]) state.userProfile.listAnswers[subQuestionIndex] = [];
-            let current = state.userProfile.listAnswers[subQuestionIndex];
-            if (current.includes(opt)) {
-                state.userProfile.listAnswers[subQuestionIndex] = current.filter(x => x !== opt);
-            } else {
-                current.push(opt);
-            }
-            renderOnboardingStep();
-        };
-
-        // ─── Navigation ───
-        document.getElementById('btn-onboard-next').onclick = function() {
-            const step = state.onboardingStep;
-
-            if (step === 2) {
-                const inp = document.getElementById('onboard-input-name');
-                if (!inp || !inp.value.trim()) { alert('Please enter your name.'); return; }
-                state.userProfile.name = inp.value.trim();
-            }
-            if (step === 3) {
-                const inp = document.getElementById('onboard-input-username');
-                if (!inp || !inp.value.trim()) { alert('Please choose a username.'); return; }
-                const val = inp.value.trim().toLowerCase();
-                if (!/^[a-z0-9_]{3,20}$/.test(val)) {
-                    alert('Username must be 3-20 characters, letters, numbers, underscores only.');
-                    return;
-                }
-                state.userProfile.username = val;
-            }
-            if (step === 4) {
-                if (!state.userProfile.photo) {
-                    // If no photo selected, use default avatar
-                    useDefaultPhoto();
-                }
-            }
-            if (step === 5) {
-                const inp = document.getElementById('onboard-input-age');
-                if (!inp || !inp.value.trim()) { alert('Please enter your age.'); return; }
-                const age = parseInt(inp.value);
-                if (isNaN(age) || age < 16 || age > 99) { alert('Please enter a valid age (16-99).'); return; }
-                state.userProfile.age = age;
-            }
-            if (step === 6) {
-                if (!state.userProfile.gender) { alert('Please select your gender.'); return; }
-            }
-            if (step === 7) {
-                if (!state.userProfile.lookingFor) { alert('Please select who you\'re looking for.'); return; }
-            }
-            if (step === 8) {
-                const inp = document.getElementById('onboard-input-loc');
-                if (!inp || !inp.value.trim()) { alert('Please enter your location.'); return; }
-                state.userProfile.location = inp.value.trim();
-            }
-            if (step === 9) {
-                const q = QUESTIONS[subQuestionIndex];
-                if (q.type === 'matrix') {
-                    if (state.userProfile.matrixAnswers[subQuestionIndex] === undefined) {
-                        alert('Please select an option.');
-                        return;
-                    }
-                } else {
-                    const selections = state.userProfile.listAnswers[subQuestionIndex] || [];
-                    if (selections.length === 0) {
-                        alert('Please select at least one option.');
-                        return;
-                    }
-                }
-                if (subQuestionIndex < QUESTIONS.length - 1) {
-                    subQuestionIndex++;
-                    state.subQuestionIndex = subQuestionIndex;
-                    saveStateToStorage();
-                    renderOnboardingStep();
-                } else {
-                    state.onboardingStep = 10;
-                    saveStateToStorage();
-                    renderOnboardingStep();
-                }
-                return;
-            }
-            if (step === 10) {
-                const inp = document.getElementById('onboard-input-bio');
-                if (inp && inp.value.trim().length > 0) {
-                    state.userProfile.bio = inp.value.trim();
-                } else {
-                    state.userProfile.bio = "Just a friendly soul looking for connections!";
-                }
-            }
-
-            if (step < 11) {
-                state.onboardingStep++;
-                saveStateToStorage();
-                renderOnboardingStep();
-            } else {
-                state.onboardingStep = 12;
-                state.hasCompletedOnboarding = true;
-                saveStateToStorage();
-                document.getElementById('view-onboarding').classList.add('hidden');
-                document.getElementById('view-app-main').classList.remove('hidden');
-                document.getElementById('app-nav-bar').classList.remove('hidden');
-                switchTab('match');
-            }
-        };
-
-        document.getElementById('btn-onboard-back').onclick = function() {
-            const step = state.onboardingStep;
-            if (step === 9 && subQuestionIndex > 0) {
-                subQuestionIndex--;
-                state.subQuestionIndex = subQuestionIndex;
-                saveStateToStorage();
-                renderOnboardingStep();
-                return;
-            }
-            if (step > 1) {
-                state.onboardingStep--;
-                saveStateToStorage();
-                renderOnboardingStep();
-            }
-        };
-
-        // ─── Bio Counter ───
-        document.addEventListener('input', function(e) {
-            if (e.target && e.target.id === 'onboard-input-bio') {
-                const counter = document.getElementById('bio-counter');
-                if (counter) {
-                    const len = e.target.value.length;
-                    counter.textContent = `${len} / 300`;
-                    if (len > 300) {
-                        e.target.value = e.target.value.substring(0, 300);
-                        counter.textContent = `300 / 300`;
-                    }
-                }
-            }
-        });
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // MAIN APP TABS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        window.switchTab = function(target) {
-            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            const tab = document.getElementById(`tab-${target}`);
-            if (tab) tab.style.display = 'flex';
-
-            ['nav-btn-match', 'nav-btn-chats', 'nav-btn-profile'].forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.classList.remove('text-sparkGold');
-                    btn.classList.add('text-slate-500');
-                }
-            });
-            const activeBtn = document.getElementById(`nav-btn-${target}`);
-            if (activeBtn) {
-                activeBtn.classList.add('text-sparkGold');
-                activeBtn.classList.remove('text-slate-500');
-            }
-
-            if (target === 'match') renderDeck();
-            if (target === 'profile') renderProfileTab();
-            if (target === 'chats') renderChatsList();
-        };
-
-        document.getElementById('nav-btn-match').onclick = () => switchTab('match');
-        document.getElementById('nav-btn-chats').onclick = () => switchTab('chats');
-        document.getElementById('nav-btn-profile').onclick = () => switchTab('profile');
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // MATCH DECK (centered)
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderDeck() {
-            const wrapper = document.getElementById('deck-wrapper');
-            const available = state.sampleProfiles.filter(p => !state.likes.includes(p.id));
-
-            if (available.length === 0) {
-                wrapper.innerHTML = `
-                    <div class="text-center text-slate-500 p-8 border border-dashed border-slate-800 rounded-3xl bg-slate-950/40 w-full max-w-sm">
-                        <span class="text-4xl block mb-2">🌍</span>
-                        <p class="font-bold text-sm text-slate-300">No new profiles</p>
-                        <p class="text-xs text-slate-600 mt-1">Check back later for new matches!</p>
-                    </div>`;
-                return;
-            }
-
-            const currentCard = available[0];
-            const sparkScore = calculateSparkScore(state.userProfile, currentCard);
-
-            wrapper.innerHTML = `
-                <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl relative flex flex-col h-[470px]">
-                    <img src="${currentCard.photo}" class="w-full h-[58%] object-cover pointer-events-none" alt="">
-                    <div class="p-5 flex-1 flex flex-col justify-between bg-gradient-to-b from-slate-900 to-slate-950 relative">
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <h3 class="text-lg font-bold text-white">${currentCard.name}, <span class="font-normal text-slate-400">${currentCard.age}</span></h3>
-                                <span class="text-[11px] font-black px-2.5 py-1 bg-sparkGold/10 text-sparkGold rounded-full border border-sparkGold/20">Spark Score: ${sparkScore}%</span>
-                            </div>
-                            <p class="text-xs text-slate-400 line-clamp-2 mt-1 leading-relaxed">${currentCard.bio}</p>
-                        </div>
-                        <div class="flex gap-4 pt-2">
-                            <button onclick="handleVote(${currentCard.id}, false)" class="w-14 h-14 bg-slate-950 border border-slate-800 text-rose-500 rounded-2xl flex items-center justify-center font-bold text-lg active:scale-90 transition-all">✕</button>
-                            <button onclick="handleVote(${currentCard.id}, true)" class="flex-1 h-14 bg-gradient-to-r from-sparkSecondary to-sparkGold text-slate-950 font-black rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-xl shadow-sparkGold/5">✨ Connect</button>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        window.handleVote = function(userId, liked) {
-            if (liked) {
-                state.likes.push(userId);
-                if (state.incoming.includes(userId) && !state.matches.includes(userId)) {
-                    state.matches.push(userId);
-                    const name = state.sampleProfiles.find(p => p.id === userId)?.name || 'someone';
-                    alert(`🎉 It's a match! You and ${name} are now connected.`);
-                }
-            } else {
-                state.likes.push(userId);
-            }
-            saveStateToStorage();
-            renderDeck();
-            updateGlobalBadges();
-            renderChatsList();
-        };
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // CHATS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderChatsList() {
-            const container = document.getElementById('chats-list-target');
-            container.innerHTML = "";
-
-            if (state.matches.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center p-8 text-slate-600 text-xs italic border border-slate-900 rounded-2xl bg-slate-950/20">
-                        No active connections yet. Match with someone to start chatting!
-                    </div>`;
-                return;
-            }
-
-            state.matches.forEach(id => {
-                const profile = state.sampleProfiles.find(p => p.id === id);
-                if (!profile) return;
-                const div = document.createElement('div');
-                div.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all";
-                div.onclick = () => openChatModal(profile);
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <img class="w-11 h-11 rounded-full object-cover border border-slate-800" src="${profile.photo}">
-                        <div>
-                            <h4 class="font-bold text-sm text-white">${profile.name}</h4>
-                            <p class="text-xs text-sparkGold font-semibold">✨ Connected</p>
-                        </div>
-                    </div>
-                    <span class="text-slate-600 text-xs font-bold font-mono">➔</span>`;
-                container.appendChild(div);
-            });
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // CHAT MODAL
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function openChatModal(profile) {
-            state.currentActiveChatUserId = profile.id;
-            const modal = document.getElementById('chat-modal');
-            document.getElementById('chat-header-avatar').src = profile.photo;
-            document.getElementById('chat-header-name').textContent = profile.name;
-
-            const box = document.getElementById('chat-messages-box');
-            box.innerHTML = `
-                <div class="bg-slate-900/40 border border-slate-900 rounded-xl p-3 text-center text-[11px] text-slate-500 max-w-xs mx-auto my-1 font-mono">
-                    🔒 Secure connection established
-                </div>`;
-
-            if (state.chats[profile.id]) {
-                state.chats[profile.id].forEach(msg => {
-                    appendChatMessage(msg.text, msg.sender === 'me');
-                });
-            }
-            modal.style.display = 'flex';
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function appendChatMessage(text, isMe) {
-            const box = document.getElementById('chat-messages-box');
-            const div = document.createElement('div');
-            div.className = isMe ? 'bubble-me' : 'bubble-them';
-            div.textContent = text;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        document.getElementById('btn-close-chat').onclick = function() {
-            document.getElementById('chat-modal').style.display = 'none';
-            state.currentActiveChatUserId = null;
-        };
-
-        document.getElementById('btn-send-message').onclick = sendChatMessage;
-        document.getElementById('chat-input-field').onkeydown = function(e) {
-            if (e.key === 'Enter') sendChatMessage();
-        };
-
-        function sendChatMessage() {
-            const input = document.getElementById('chat-input-field');
-            const text = input.value.trim();
-            const targetId = state.currentActiveChatUserId;
-            if (!text || !targetId) return;
-
-            if (!state.chats[targetId]) state.chats[targetId] = [];
-            state.chats[targetId].push({ sender: 'me', text });
-            appendChatMessage(text, true);
-            input.value = '';
-            saveStateToStorage();
-
-            setTimeout(() => {
-                if (state.currentActiveChatUserId === targetId) {
-                    const replies = [
-                        "That's awesome! Tell me more.",
-                        "I totally vibe with that!",
-                        "Love your energy! Let's connect more.",
-                        "Interesting! I've been meaning to try that.",
-                        "You're speaking my language! Keep going."
-                    ];
-                    const reply = replies[Math.floor(Math.random() * replies.length)];
-                    state.chats[targetId].push({ sender: 'them', text: reply });
-                    appendChatMessage(reply, false);
-                    saveStateToStorage();
-                }
-            }, 1200);
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // PROFILE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderProfileTab() {
-            const u = state.userProfile;
-            document.getElementById('my-profile-name').textContent = u.name || 'No name set';
-            document.getElementById('my-profile-handle').textContent = u.username ? `@${u.username}` : '@username';
-            document.getElementById('my-profile-age').textContent = u.age ? `Age: ${u.age}` : 'Age not set';
-            document.getElementById('my-profile-loc').textContent = u.location || 'Location not set';
-            document.getElementById('my-profile-bio').textContent = u.bio ? `"${u.bio}"` : 'No bio yet.';
-            document.getElementById('my-profile-pic').src = u.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300';
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // BADGES
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function updateGlobalBadges() {
-            const incomingCount = state.incoming.filter(id => !state.likes.includes(id)).length;
-            document.getElementById('badge-incoming-count').textContent = incomingCount;
-            document.getElementById('chat-count').textContent = state.matches.length;
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // LAUNCH
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        window.addEventListener('DOMContentLoaded', initApp);
-    </script>
-</body>
-</html>
+```

@@ -18,588 +18,527 @@
 
     <style>
         /* ─── RESET ─── */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+* {
+    -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f2f2f7;
-            color: #1c1c1e;
-            transition: background 0.3s, color 0.3s;
-        }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #0a0a0f;
+    color: #f5f5fa;
+}
 
-        /* ─── DARK MODE ─── */
-        body.dark-mode {
-            background: #0a0a0f;
-            color: #f5f5fa;
-        }
+/* ─── SHARED ─── */
+.bg-apple-light {
+    background: #1c1c1e;
+}
+.bg-apple-card {
+    background: #2c2c2e;
+    border-radius: 16px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+.text-apple-secondary {
+    color: #8e8e93;
+}
+.border-apple {
+    border-color: #3a3a3c;
+}
+.bg-apple-input {
+    background: #2c2c2e;
+}
+.bg-apple-nav {
+    background: rgba(28, 28, 30, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
 
-        body.dark-mode .bg-apple-light {
-            background: #1c1c1e;
-        }
-        body.dark-mode .bg-apple-card {
-            background: #2c2c2e;
-        }
-        body.dark-mode .text-apple-secondary {
-            color: #8e8e93;
-        }
-        body.dark-mode .border-apple {
-            border-color: #3a3a3c;
-        }
-        body.dark-mode .bg-apple-input {
-            background: #2c2c2e;
-        }
-        body.dark-mode .bg-apple-nav {
-            background: rgba(28, 28, 30, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
+/* ─── APPLE BUTTONS ─── */
+.btn-apple {
+    background: #007AFF;
+    color: white;
+    font-weight: 600;
+    border-radius: 14px;
+    padding: 14px 24px;
+    border: none;
+    font-size: 16px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
 
-        /* ─── LIGHT MODE ─── */
-        body.light-mode {
-            background: #f2f2f7;
-            color: #1c1c1e;
-        }
+.btn-apple:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
 
-        body.light-mode .bg-apple-light {
-            background: #ffffff;
-        }
-        body.light-mode .bg-apple-card {
-            background: #ffffff;
-        }
-        body.light-mode .text-apple-secondary {
-            color: #8e8e93;
-        }
-        body.light-mode .border-apple {
-            border-color: #e5e5ea;
-        }
-        body.light-mode .bg-apple-input {
-            background: #f2f2f7;
-        }
-        body.light-mode .bg-apple-nav {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
+.btn-apple-outline {
+    background: transparent;
+    color: #007AFF;
+    border: 2px solid #007AFF;
+}
 
-        /* ─── SHARED ─── */
-        .bg-apple-light {
-            background: #ffffff;
-        }
-        .bg-apple-card {
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-        }
-        .text-apple-secondary {
-            color: #8e8e93;
-        }
-        .border-apple {
-            border-color: #e5e5ea;
-        }
-        .bg-apple-input {
-            background: #f2f2f7;
-        }
-        .bg-apple-nav {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
+.btn-apple-danger {
+    background: #FF3B30;
+    color: white;
+}
 
-        /* ─── APPLE BUTTONS ─── */
-        .btn-apple {
-            background: #007AFF;
-            color: white;
-            font-weight: 600;
-            border-radius: 14px;
-            padding: 14px 24px;
-            border: none;
-            font-size: 16px;
-            transition: all 0.15s ease;
-            cursor: pointer;
-            width: 100%;
-            text-align: center;
-        }
+/* ─── SCROLLBAR ─── */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
 
-        .btn-apple:active {
-            transform: scale(0.97);
-            opacity: 0.85;
-        }
+/* ─── ANIMATIONS ─── */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-fade-in {
+    animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-        .btn-apple-outline {
-            background: transparent;
-            color: #007AFF;
-            border: 2px solid #007AFF;
-        }
+@keyframes scaleUp {
+    from {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+.animate-scale-up {
+    animation: scaleUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-        .btn-apple-danger {
-            background: #FF3B30;
-            color: white;
-        }
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+.animate-slide-up {
+    animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-        /* ─── SCROLLBAR ─── */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+/* ─── LINE CLAMP ─── */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 
-        /* ─── ANIMATIONS ─── */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+/* ─── CHAT BUBBLES ─── */
+.bubble-me {
+    background: #007AFF;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 20px 20px 4px 20px;
+    max-width: 80%;
+    align-self: flex-end;
+    font-weight: 500;
+}
 
-        @keyframes scaleUp {
-            from {
-                transform: scale(0.95);
-                opacity: 0.7;
-            }
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        .animate-scale-up {
-            animation: scaleUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+.bubble-them {
+    background: #2c2c2e;
+    color: #f5f5fa;
+    padding: 10px 16px;
+    border-radius: 20px 20px 20px 4px;
+    max-width: 80%;
+    align-self: flex-start;
+    font-weight: 500;
+    border: 1px solid #3a3a3c;
+}
 
-        @keyframes slideUp {
-            from {
-                transform: translateY(20px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        .animate-slide-up {
-            animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+/* ─── TAB CENTERING ─── */
+#tab-match {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 65vh;
+    width: 100%;
+    padding: 16px 0;
+}
+#tab-chats {
+    display: flex;
+    flex-direction: column;
+    min-height: 65vh;
+    width: 100%;
+    padding: 16px 0;
+}
+#tab-profile {
+    display: flex;
+    flex-direction: column;
+    min-height: 65vh;
+    width: 100%;
+    padding: 16px 0;
+}
+#deck-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex: 1;
+    padding: 8px 0;
+}
 
-        /* ─── LINE CLAMP ─── */
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+/* ─── SELECTION STYLES ─── */
+.option-selected {
+    border-color: #007AFF !important;
+    background-color: rgba(0, 122, 255, 0.15) !important;
+    color: #007AFF !important;
+    font-weight: 600 !important;
+}
+.option-selected .checkmark {
+    display: inline-block !important;
+}
+.checkmark {
+    display: none;
+    margin-right: 8px;
+    color: #007AFF;
+}
 
-        /* ─── CHAT BUBBLES ─── */
-        .bubble-me {
-            background: #007AFF;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 20px 20px 4px 20px;
-            max-width: 80%;
-            align-self: flex-end;
-            font-weight: 500;
-        }
+/* ─── SETTINGS TOGGLES ─── */
+.toggle-track {
+    width: 48px;
+    height: 28px;
+    background: #3a3a3c;
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+}
 
-        .bubble-them {
-            background: #e9e9ed;
-            color: #1c1c1e;
-            padding: 10px 16px;
-            border-radius: 20px 20px 20px 4px;
-            max-width: 80%;
-            align-self: flex-start;
-            font-weight: 500;
-        }
+.toggle-track.active {
+    background: #007AFF;
+}
 
-        body.dark-mode .bubble-them {
-            background: #2c2c2e;
-            color: #f5f5fa;
-        }
+.toggle-thumb {
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.25s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
 
-        /* ─── TAB CENTERING ─── */
-        #tab-match {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 65vh;
-            width: 100%;
-            padding: 16px 0;
-        }
-        #tab-chats {
-            display: flex;
-            flex-direction: column;
-            min-height: 65vh;
-            width: 100%;
-            padding: 16px 0;
-        }
-        #tab-profile {
-            display: flex;
-            flex-direction: column;
-            min-height: 65vh;
-            width: 100%;
-            padding: 16px 0;
-        }
-        #deck-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            flex: 1;
-            padding: 8px 0;
-        }
+.toggle-track.active .toggle-thumb {
+    transform: translateX(20px);
+}
 
-        /* ─── SELECTION STYLES ─── */
-        .option-selected {
-            border-color: #007AFF !important;
-            background-color: rgba(0, 122, 255, 0.12) !important;
-            color: #007AFF !important;
-            font-weight: 600 !important;
-        }
-        .option-selected .checkmark {
-            display: inline-block !important;
-        }
-        .checkmark {
-            display: none;
-            margin-right: 8px;
-            color: #007AFF;
-        }
+/* ─── SETTINGS ITEMS ─── */
+.settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #3a3a3c;
+    cursor: pointer;
+}
 
-        /* ─── SETTINGS TOGGLES ─── */
-        .toggle-track {
-            width: 48px;
-            height: 28px;
-            background: #e5e5ea;
-            border-radius: 14px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.25s ease;
-            flex-shrink: 0;
-        }
+.settings-item:last-child {
+    border-bottom: none;
+}
 
-        body.dark-mode .toggle-track {
-            background: #3a3a3c;
-        }
+.settings-item .s-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: #f5f5fa;
+}
+.settings-item .s-sub {
+    font-size: 13px;
+    color: #8e8e93;
+}
+.settings-item .s-arrow {
+    color: #5a5a5e;
+    font-size: 16px;
+}
 
-        .toggle-track.active {
-            background: #007AFF;
-        }
+/* ─── MATCH CARD ─── */
+.match-card {
+    background: #1c1c1e;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    max-width: 380px;
+    transition: all 0.2s ease;
+}
 
-        .toggle-thumb {
-            width: 24px;
-            height: 24px;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.25s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-        }
+.match-card .card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
 
-        .toggle-track.active .toggle-thumb {
-            transform: translateX(20px);
-        }
+.match-card .card-body {
+    padding: 16px 18px 18px;
+}
 
-        /* ─── SETTINGS ITEMS ─── */
-        .settings-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 0;
-            border-bottom: 1px solid #e5e5ea;
-            cursor: pointer;
-        }
+.match-card .card-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f5f5fa;
+}
 
-        body.dark-mode .settings-item {
-            border-bottom-color: #3a3a3c;
-        }
+.match-card .card-spark {
+    font-size: 13px;
+    font-weight: 600;
+    color: #007AFF;
+    background: rgba(0, 122, 255, 0.15);
+    padding: 2px 12px;
+    border-radius: 12px;
+}
 
-        .settings-item:last-child {
-            border-bottom: none;
-        }
+.match-card .card-bio {
+    font-size: 13px;
+    color: #8e8e93;
+    margin-top: 4px;
+}
 
-        .settings-item .s-label {
-            font-size: 15px;
-            font-weight: 500;
-        }
-        .settings-item .s-sub {
-            font-size: 13px;
-            color: #8e8e93;
-        }
-        .settings-item .s-arrow {
-            color: #c7c7cc;
-            font-size: 16px;
-        }
+.match-card .card-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
 
-        /* ─── MATCH CARD ─── */
-        .match-card {
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-            width: 100%;
-            max-width: 380px;
-            transition: all 0.2s ease;
-        }
+.match-card .card-actions .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
 
-        body.dark-mode .match-card {
-            background: #1c1c1e;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-        }
+.match-card .card-actions .btn:active {
+    transform: scale(0.96);
+}
 
-        .match-card .card-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
+.btn-skip {
+    background: #2c2c2e;
+    color: #8e8e93;
+}
 
-        .match-card .card-body {
-            padding: 16px 18px 18px;
-        }
+.btn-like {
+    background: #007AFF;
+    color: white;
+}
 
-        .match-card .card-name {
-            font-size: 18px;
-            font-weight: 700;
-        }
+.btn-chat {
+    background: #34C759;
+    color: white;
+}
 
-        .match-card .card-spark {
-            font-size: 13px;
-            font-weight: 600;
-            color: #007AFF;
-            background: rgba(0, 122, 255, 0.1);
-            padding: 2px 12px;
-            border-radius: 12px;
-        }
+/* ─── RESPONSIVE ─── */
+@media (max-width: 420px) {
+    #app {
+        border-radius: 0;
+        height: 100vh;
+        max-height: 100vh;
+    }
+    .bottom-tabs {
+        border-radius: 0;
+    }
+    body {
+        padding: 0;
+    }
+}
 
-        .match-card .card-bio {
-            font-size: 13px;
-            color: #8e8e93;
-            margin-top: 4px;
-        }
+/* ─── APP CONTAINER ─── */
+#app {
+    max-width: 420px;
+    width: 100%;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 12px 16px 100px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
 
-        .match-card .card-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 14px;
-        }
+/* ─── BOTTOM TABS ─── */
+.bottom-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 420px;
+    width: 100%;
+    background: rgba(28, 28, 30, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 8px 0 12px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    border-radius: 20px 20px 0 0;
+}
 
-        .match-card .card-actions .btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 14px;
-            font-weight: 600;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-align: center;
-        }
+.tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: #8e8e93;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 12px;
+    transition: color 0.2s;
+    position: relative;
+}
 
-        .match-card .card-actions .btn:active {
-            transform: scale(0.96);
-        }
+.tab-btn .tab-icon {
+    font-size: 22px;
+}
 
-        .btn-skip {
-            background: #f2f2f7;
-            color: #8e8e93;
-        }
-        body.dark-mode .btn-skip {
-            background: #2c2c2e;
-            color: #8e8e93;
-        }
+.tab-btn.active {
+    color: #007AFF;
+}
 
-        .btn-like {
-            background: #007AFF;
-            color: white;
-        }
+.tab-btn .badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    background: #FF3B30;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
 
-        .btn-chat {
-            background: #34C759;
-            color: white;
-        }
+.tab-btn .badge.hidden {
+    display: none;
+}
 
-        /* ─── RESPONSIVE ─── */
-        @media (max-width: 420px) {
-            #app {
-                border-radius: 0;
-                height: 100vh;
-                max-height: 100vh;
-            }
-            .bottom-tabs {
-                border-radius: 0;
-            }
-            body {
-                padding: 0;
-            }
-        }
+/* ─── ONBOARDING ─── */
+#view-onboarding {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px 0 8px;
+}
 
-        /* ─── APP CONTAINER ─── */
-        #app {
-            max-width: 420px;
-            width: 100%;
-            min-height: 100vh;
-            margin: 0 auto;
-            padding: 12px 16px 100px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+#onboarding-slide-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 0;
+}
 
-        /* ─── BOTTOM TABS ─── */
-        .bottom-tabs {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            max-width: 420px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(0, 0, 0, 0.06);
-            padding: 8px 0 12px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
-            border-radius: 20px 20px 0 0;
-        }
+.progress-track {
+    width: 100%;
+    height: 4px;
+    background: #2c2c2e;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
 
-        body.dark-mode .bottom-tabs {
-            background: rgba(28, 28, 30, 0.92);
-            border-top-color: rgba(255, 255, 255, 0.06);
-        }
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007AFF, #5AC8FA);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 9%;
+}
 
-        .tab-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            background: none;
-            border: none;
-            color: #8e8e93;
-            font-size: 10px;
-            font-weight: 500;
-            cursor: pointer;
-            padding: 4px 12px;
-            transition: color 0.2s;
-            position: relative;
-        }
+/* ─── LANGUAGES ─── */
+.lang-option {
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 2px solid #3a3a3c;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-        .tab-btn .tab-icon {
-            font-size: 22px;
-        }
+.lang-option.selected {
+    border-color: #007AFF;
+    background: rgba(0, 122, 255, 0.12);
+}
 
-        .tab-btn.active {
-            color: #007AFF;
-        }
+.lang-option .lang-flag {
+    font-size: 24px;
+}
 
-        .tab-btn .badge {
-            position: absolute;
-            top: -2px;
-            right: -4px;
-            background: #FF3B30;
-            color: white;
-            font-size: 9px;
-            font-weight: 700;
-            min-width: 16px;
-            height: 16px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 4px;
-        }
+.lang-option .lang-name {
+    font-weight: 500;
+    font-size: 15px;
+    color: #f5f5fa;
+}
 
-        .tab-btn .badge.hidden {
-            display: none;
-        }
+/* ─── ONBOARDING LABELS ─── */
+label {
+    color: #f5f5fa;
+}
 
-        /* ─── ONBOARDING ─── */
-        #view-onboarding {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 16px 0 8px;
-        }
+input, textarea {
+    color: #f5f5fa;
+}
+input::placeholder, textarea::placeholder {
+    color: #6a6a6e;
+}
 
-        #onboarding-slide-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 8px 0;
-        }
+h2, h3, h4, p {
+    color: #f5f5fa;
+}
 
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: #e5e5ea;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
+/* ─── TEXT READABILITY ─── */
+.text-apple-secondary {
+    color: #8e8e93;
+}
 
-        body.dark-mode .progress-track {
-            background: #2c2c2e;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #007AFF, #5AC8FA);
-            border-radius: 2px;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 9%;
-        }
-
-        /* ─── LANGUAGES ─── */
-        .lang-option {
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 2px solid #e5e5ea;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        body.dark-mode .lang-option {
-            border-color: #3a3a3c;
-        }
-
-        .lang-option.selected {
-            border-color: #007AFF;
-            background: rgba(0, 122, 255, 0.08);
-        }
-
-        .lang-option .lang-flag {
-            font-size: 24px;
-        }
-
-        .lang-option .lang-name {
-            font-weight: 500;
-            font-size: 15px;
-        }
+.text-\\[\\#1c1c1e\\] {
+    color: #f5f5fa !important;
+}
     </style>
 </head>
 <body>
@@ -664,16 +603,7 @@
 
                 <!-- Settings -->
                 <div class="bg-apple-card rounded-2xl border border-apple overflow-hidden shadow-sm">
-                    <div class="settings-item" onclick="toggleDarkMode()">
-                        <div>
-                            <div class="s-label">🌙 Dark Mode</div>
-                            <div class="s-sub">Switch between light and dark</div>
-                        </div>
-                        <div class="toggle-track" id="darkModeToggle">
-                            <div class="toggle-thumb"></div>
-                        </div>
-                    </div>
-
+                    
                     <div class="settings-item" onclick="openLanguageSettings()">
                         <div>
                             <div class="s-label">🌐 Language</div>
@@ -814,7 +744,6 @@
             chats: {},
             currentActiveChatUserId: null,
             hasCompletedOnboarding: false,
-            darkMode: false,
             language: "en"
         };
 
@@ -1007,11 +936,6 @@
                     const parsed = JSON.parse(saved);
                     Object.assign(state, parsed);
                     subQuestionIndex = state.subQuestionIndex || 0;
-                    if (state.darkMode) {
-                        document.body.classList.add('dark-mode');
-                        document.body.classList.remove('light-mode');
-                        document.getElementById('darkModeToggle')?.classList.add('active');
-                    }
                     return true;
                 } catch (e) { /* fall through */ }
             }
@@ -1127,18 +1051,6 @@
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // 11. DARK MODE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function toggleDarkMode() {
-            state.darkMode = !state.darkMode;
-            const toggle = document.getElementById('darkModeToggle');
-            if (state.darkMode) {
-                document.body.classList.add('dark-mode');
-                document.body.classList.remove('light-mode');
-                toggle?.classList.add('active');
-            } else {
-                document.body.classList.remove('dark-mode');
-                document.body.classList.add('light-mode');
-                toggle?.classList.remove('active');
-            }
             saveStateToStorage();
         }
 
@@ -1818,21 +1730,7 @@
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         document.addEventListener('DOMContentLoaded', function() {
             // Set initial theme
-            const saved = localStorage.getItem('spark_app_state_2026');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.darkMode) {
-                        document.body.classList.add('dark-mode');
-                        document.body.classList.remove('light-mode');
-                    } else {
-                        document.body.classList.add('light-mode');
-                        document.body.classList.remove('dark-mode');
-                    }
-                } catch (e) { /* fall through */ }
-            } else {
-                document.body.classList.add('light-mode');
-            }
+            document.body.classList.add('dark-mode');
 
             // Init app
             initApp();

@@ -771,1078 +771,1082 @@
     </div>
 
     <script>
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 1. TELEGRAM WEBAPP INIT
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.ready();
-            tg.expand();
-        }
+       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 1. TELEGRAM WEBAPP INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const tg = window.Telegram?.WebApp;
+if (tg) {
+    tg.ready();
+    tg.expand();
+}
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 2. SUPABASE INIT
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ⚠️ REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
-        const SUPABASE_URL = "https://your-project-id.supabase.co";
-        const SUPABASE_ANON_KEY = "your-supabase-anon-key";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 2. SUPABASE INIT (with fallback)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let supabase = null;
+let useSupabase = false;
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 3. STATE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        let state = {
-            onboardingStep: 1,
-            subQuestionIndex: 0,
-            userProfile: {
-                id: null,
-                name: "",
-                username: "",
-                photo: "",
-                age: "",
-                gender: "",
-                lookingFor: "",
-                location: "",
-                bio: "",
-                matrixAnswers: [],
-                listAnswers: {},
-                language: "en"
-            },
-            sampleProfiles: [],
-            likes: [],
-            incoming: [],
-            matches: [],
-            chats: {},
-            currentActiveChatUserId: null,
-            hasCompletedOnboarding: false,
-            darkMode: false,
-            language: "en"
-        };
+try {
+    const SUPABASE_URL = "https://your-project-id.supabase.co";
+    const SUPABASE_ANON_KEY = "your-supabase-anon-key";
+    
+    // Only try to use Supabase if credentials are not the defaults
+    if (SUPABASE_URL !== "https://your-project-id.supabase.co" && 
+        SUPABASE_ANON_KEY !== "your-supabase-anon-key") {
+        supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        useSupabase = true;
+        console.log("Supabase connected");
+    } else {
+        console.log("Supabase not configured – using local storage only");
+    }
+} catch (e) {
+    console.log("Supabase error:", e);
+    console.log("Using local storage only");
+}
 
-        let subQuestionIndex = 0;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 3. STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let state = {
+    onboardingStep: 1,
+    subQuestionIndex: 0,
+    userProfile: {
+        id: null,
+        name: "",
+        username: "",
+        photo: "",
+        age: "",
+        gender: "",
+        lookingFor: "",
+        location: "",
+        bio: "",
+        matrixAnswers: [],
+        listAnswers: {},
+        language: "en"
+    },
+    sampleProfiles: [],
+    likes: [],
+    incoming: [],
+    matches: [],
+    chats: {},
+    currentActiveChatUserId: null,
+    hasCompletedOnboarding: false,
+    darkMode: false,
+    language: "en"
+};
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 4. LANGUAGES
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const LANGUAGES = [
-            { code: "en", name: "English", flag: "🇬🇧" },
-            { code: "es", name: "Español", flag: "🇪🇸" },
-            { code: "fr", name: "Français", flag: "🇫🇷" },
-            { code: "de", name: "Deutsch", flag: "🇩🇪" },
-            { code: "pt", name: "Português", flag: "🇵🇹" },
-            { code: "ar", name: "العربية", flag: "🇦🇪" },
-            { code: "zh", name: "中文", flag: "🇨🇳" },
-            { code: "hi", name: "हिन्दी", flag: "🇮🇳" },
-        ];
+let subQuestionIndex = 0;
 
-        function detectUserLanguage() {
-            const tgLang = tg?.initDataUnsafe?.user?.language_code || navigator?.language?.split('-')[0] || 'en';
-            const supported = LANGUAGES.find(l => l.code === tgLang);
-            return supported ? tgLang : 'en';
-        }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 4. LANGUAGES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const LANGUAGES = [
+    { code: "en", name: "English", flag: "🇬🇧" },
+    { code: "es", name: "Español", flag: "🇪🇸" },
+    { code: "fr", name: "Français", flag: "🇫🇷" },
+    { code: "de", name: "Deutsch", flag: "🇩🇪" },
+    { code: "pt", name: "Português", flag: "🇵🇹" },
+    { code: "ar", name: "العربية", flag: "🇦🇪" },
+    { code: "zh", name: "中文", flag: "🇨🇳" },
+    { code: "hi", name: "हिन्दी", flag: "🇮🇳" },
+];
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 5. QUESTIONS (20)
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const QUESTIONS = [
-            { type: "matrix", text: "🌙 Do you thrive in the quiet dark or seize the daytime?", options: ["Night owl",
-                    "Early bird"
-                ] },
-            { type: "matrix", text: "🎉 How do you recharge your social battery?", options: ["Recharges in groups",
-                    "Recharges alone"
-                ] },
-            { type: "matrix", text: "🎲 What's your standard weekend operating speed?", options: ["Spontaneous",
-                    "Meticulous"
-                ] },
-            { type: "matrix", text: "🧠 What level of discussion keeps you hooked?", options: ["Deep conversations",
-                    "Light banter"
-                ] },
-            { type: "matrix", text: "🌲 Where do you go to fully decompress?", options: ["Outdoorsy", "Indoorsy"] },
-            { type: "matrix", text: "🍜 What's your relationship with dining out?", options: ["Try new foods",
-                    "Comfort food"
-                ] },
-            { type: "matrix", text: "🎨 How does your brain process problem solving?", options: ["Creative",
-                    "Logical"
-                ] },
-            { type: "matrix", text: "🎊 What is your ideal environment to socialise?", options: ["Big parties",
-                    "Small hangs"
-                ] },
-            { type: "matrix", text: "🗣️ How do you communicate complex feedback?", options: ["Direct/blunt",
-                    "Gentle/diplomatic"
-                ] },
-            { type: "matrix", text: "📱 What is your digital messaging cadence?", options: ["Frequent texter",
-                    "Prefers calls"
-                ] },
-            { type: "matrix", text: "👤 What format of hangouts feel most rewarding?", options: ["1-on-1 hangs",
-                    "Group hangs"
-                ] },
-            { type: "matrix", text: "⏰ What's your arrival philosophy for events?", options: ["Strictly punctual",
-                    "Go-with-the-flow"
-                ] },
-            { type: "matrix", text: "🌌 How do you map out concepts or strategies?", options: ["Big-picture thinker",
-                    "Detail-oriented doer"
-                ] },
-            { type: "matrix", text: "💬 What is your dynamic with heavy emotional processing?", options: [
-                    "Open about feelings", "Processes alone"
-                ] },
-            { type: "matrix", text: "😏 What's your dominant comedic frequency?", options: ["Dry/sarcastic humor",
-                    "Warm/silly humor"
-                ] },
-            { type: "multi", text: "🍿 What hangouts excite you most? (Select all)", options: ["Nature adventure",
-                    "Eating out", "Nightlife", "Cultural stuff", "Active sports", "Cozy indoor", "Shopping",
-                    "Creative sessions", "Festivals/events", "Just walking and talking"
-                ] },
-            { type: "multi", text: "💬 What do you talk about with close friends?", options: [
-                    "Life struggles / mental health", "Relationships / dating", "Career / work / money",
-                    "Pop culture / memes", "Deep philosophy / life's meaning", "Politics / social issues",
-                    "Sports / fitness", "Travel / bucket lists", "Random nonsense / roasting", "Shared hobbies"
-                ] },
-            { type: "multi", text: "📱 How do you prefer to stay in touch?", options: ["Long voice notes",
-                    "Short texts throughout the day", "Phone calls", "Video calls", "Meme/reel sharing",
-                    "In-person only", "Group chats", "One-on-one DMs"
-                ] },
-            { type: "multi", text: "⚡ What's your native conflict resolution style?", options: [
-                    "Address it immediately", "Take space, then talk", "Use humor to diffuse",
-                    "Prefer text for hard convos", "Avoid unless it's a dealbreaker", "Apologize quickly",
-                    "Stand my ground firmly"
-                ] },
-            { type: "multi", text: "❤️ What makes you feel deeply seen in a friendship?", options: [
-                    "They remember small details", "They initiate plans", "They check in during hard times",
-                    "They give honest feedback", "They celebrate my wins", "They make me laugh",
-                    "They respect my boundaries"
-                ] }
-        ];
+function detectUserLanguage() {
+    const tgLang = tg?.initDataUnsafe?.user?.language_code || navigator?.language?.split('-')[0] || 'en';
+    const supported = LANGUAGES.find(l => l.code === tgLang);
+    return supported ? tgLang : 'en';
+}
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 6. SAMPLE PROFILES
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function generateSampleProfiles() {
-            const names = ["Racheal", "Chinedu", "Amara", "Tolu", "Zara", "Kofi"];
-            const locations = ["Abuja, Nigeria", "Lagos, Nigeria", "Lekki, Nigeria", "Accra, Ghana", "Nairobi, Kenya"];
-            const bios = [
-                "Adventurer, photographer, and deep conversation lover.",
-                "Tech enthusiast, gamer, and sports fan.",
-                "Creative soul, festival-goer, and hiking buddy.",
-                "Bookworm, foodie, and weekend explorer.",
-                "Music producer, night owl, and coffee addict.",
-                "Yoga teacher, nature lover, and wellness advocate."
-            ];
-            const photos = [
-                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
-                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
-                "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
-                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300",
-                "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300",
-                "https://images.unsplash.com/photo-1504297050568-910d24c426d3?w=300"
-            ];
-            let profiles = [];
-            for (let i = 0; i < 4; i++) {
-                const idx = i % names.length;
-                profiles.push({
-                    id: 100 + i,
-                    name: names[idx],
-                    username: names[idx].toLowerCase() + "_" + Math.random().toString(36).substring(2, 6),
-                    age: 20 + Math.floor(Math.random() * 8),
-                    gender: i % 2 === 0 ? "Female" : "Male",
-                    location: locations[i % locations.length],
-                    bio: bios[i % bios.length],
-                    photo: photos[i % photos.length],
-                    matrixAnswers: Array.from({ length: 15 }, () => Math.random() > 0.5 ? 0 : 1),
-                    listAnswers: {
-                        "15": ["Eating out", "Cultural stuff", "Just walking and talking"].slice(0, 2 + Math.floor(
-                            Math.random() * 2)),
-                        "16": ["Relationships / dating", "Pop culture / memes", "Deep philosophy / life's meaning"]
-                            .slice(0, 2 + Math.floor(Math.random() * 2)),
-                        "17": ["Short texts throughout the day", "Meme/reel sharing"].slice(0, 1 + Math.floor(Math
-                            .random() * 2)),
-                        "18": ["Take space, then talk", "Use humor to diffuse"].slice(0, 1 + Math.floor(Math
-                            .random() * 2)),
-                        "19": ["They remember small details", "They make me laugh"].slice(0, 1 + Math.floor(Math
-                            .random() * 2))
-                    }
-                });
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 5. QUESTIONS (20)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const QUESTIONS = [
+    { type: "matrix", text: "🌙 Do you thrive in the quiet dark or seize the daytime?", options: ["Night owl", "Early bird"] },
+    { type: "matrix", text: "🎉 How do you recharge your social battery?", options: ["Recharges in groups", "Recharges alone"] },
+    { type: "matrix", text: "🎲 What's your standard weekend operating speed?", options: ["Spontaneous", "Meticulous"] },
+    { type: "matrix", text: "🧠 What level of discussion keeps you hooked?", options: ["Deep conversations", "Light banter"] },
+    { type: "matrix", text: "🌲 Where do you go to fully decompress?", options: ["Outdoorsy", "Indoorsy"] },
+    { type: "matrix", text: "🍜 What's your relationship with dining out?", options: ["Try new foods", "Comfort food"] },
+    { type: "matrix", text: "🎨 How does your brain process problem solving?", options: ["Creative", "Logical"] },
+    { type: "matrix", text: "🎊 What is your ideal environment to socialise?", options: ["Big parties", "Small hangs"] },
+    { type: "matrix", text: "🗣️ How do you communicate complex feedback?", options: ["Direct/blunt", "Gentle/diplomatic"] },
+    { type: "matrix", text: "📱 What is your digital messaging cadence?", options: ["Frequent texter", "Prefers calls"] },
+    { type: "matrix", text: "👤 What format of hangouts feel most rewarding?", options: ["1-on-1 hangs", "Group hangs"] },
+    { type: "matrix", text: "⏰ What's your arrival philosophy for events?", options: ["Strictly punctual", "Go-with-the-flow"] },
+    { type: "matrix", text: "🌌 How do you map out concepts or strategies?", options: ["Big-picture thinker", "Detail-oriented doer"] },
+    { type: "matrix", text: "💬 What is your dynamic with heavy emotional processing?", options: ["Open about feelings", "Processes alone"] },
+    { type: "matrix", text: "😏 What's your dominant comedic frequency?", options: ["Dry/sarcastic humor", "Warm/silly humor"] },
+    { type: "multi", text: "🍿 What hangouts excite you most? (Select all)", options: ["Nature adventure", "Eating out", "Nightlife", "Cultural stuff", "Active sports", "Cozy indoor", "Shopping", "Creative sessions", "Festivals/events", "Just walking and talking"] },
+    { type: "multi", text: "💬 What do you talk about with close friends?", options: ["Life struggles / mental health", "Relationships / dating", "Career / work / money", "Pop culture / memes", "Deep philosophy / life's meaning", "Politics / social issues", "Sports / fitness", "Travel / bucket lists", "Random nonsense / roasting", "Shared hobbies"] },
+    { type: "multi", text: "📱 How do you prefer to stay in touch?", options: ["Long voice notes", "Short texts throughout the day", "Phone calls", "Video calls", "Meme/reel sharing", "In-person only", "Group chats", "One-on-one DMs"] },
+    { type: "multi", text: "⚡ What's your native conflict resolution style?", options: ["Address it immediately", "Take space, then talk", "Use humor to diffuse", "Prefer text for hard convos", "Avoid unless it's a dealbreaker", "Apologize quickly", "Stand my ground firmly"] },
+    { type: "multi", text: "❤️ What makes you feel deeply seen in a friendship?", options: ["They remember small details", "They initiate plans", "They check in during hard times", "They give honest feedback", "They celebrate my wins", "They make me laugh", "They respect my boundaries"] }
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 6. SAMPLE PROFILES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function generateSampleProfiles() {
+    const names = ["Racheal", "Chinedu", "Amara", "Tolu", "Zara", "Kofi"];
+    const locations = ["Abuja, Nigeria", "Lagos, Nigeria", "Lekki, Nigeria", "Accra, Ghana", "Nairobi, Kenya"];
+    const bios = [
+        "Adventurer, photographer, and deep conversation lover.",
+        "Tech enthusiast, gamer, and sports fan.",
+        "Creative soul, festival-goer, and hiking buddy.",
+        "Bookworm, foodie, and weekend explorer.",
+        "Music producer, night owl, and coffee addict.",
+        "Yoga teacher, nature lover, and wellness advocate."
+    ];
+    const photos = [
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300",
+        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300",
+        "https://images.unsplash.com/photo-1504297050568-910d24c426d3?w=300"
+    ];
+    let profiles = [];
+    for (let i = 0; i < 4; i++) {
+        const idx = i % names.length;
+        profiles.push({
+            id: 100 + i,
+            name: names[idx],
+            username: names[idx].toLowerCase() + "_" + Math.random().toString(36).substring(2, 6),
+            age: 20 + Math.floor(Math.random() * 8),
+            gender: i % 2 === 0 ? "Female" : "Male",
+            location: locations[i % locations.length],
+            bio: bios[i % bios.length],
+            photo: photos[i % photos.length],
+            matrixAnswers: Array.from({ length: 15 }, () => Math.random() > 0.5 ? 0 : 1),
+            listAnswers: {
+                "15": ["Eating out", "Cultural stuff", "Just walking and talking"].slice(0, 2 + Math.floor(Math.random() * 2)),
+                "16": ["Relationships / dating", "Pop culture / memes", "Deep philosophy / life's meaning"].slice(0, 2 + Math.floor(Math.random() * 2)),
+                "17": ["Short texts throughout the day", "Meme/reel sharing"].slice(0, 1 + Math.floor(Math.random() * 2)),
+                "18": ["Take space, then talk", "Use humor to diffuse"].slice(0, 1 + Math.floor(Math.random() * 2)),
+                "19": ["They remember small details", "They make me laugh"].slice(0, 1 + Math.floor(Math.random() * 2))
             }
-            return profiles;
+        });
+    }
+    return profiles;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 7. SPARK SCORE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function calculateSparkScore(user, target) {
+    let abMatches = 0;
+    for (let i = 0; i < 15; i++) {
+        if (user.matrixAnswers[i] === target.matrixAnswers[i]) abMatches++;
+    }
+    const abScore = (abMatches / 15) * 100;
+
+    let totalListIntersectionPct = 0;
+    for (let qIdx = 15; qIdx <= 19; qIdx++) {
+        const arrA = user.listAnswers[qIdx] || [];
+        const arrB = target.listAnswers[qIdx] || [];
+        if (arrA.length === 0 && arrB.length === 0) {
+            totalListIntersectionPct += 100;
+            continue;
         }
+        const setB = new Set(arrB);
+        const intersection = arrA.filter(x => setB.has(x));
+        const totalUnique = new Set([...arrA, ...arrB]).size;
+        totalListIntersectionPct += totalUnique > 0 ? (intersection.length / totalUnique) * 100 : 0;
+    }
+    const listScore = totalListIntersectionPct / 5;
+    const sparkScore = (abScore * 0.5) + (listScore * 0.5);
+    return Math.round(sparkScore);
+}
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 7. SPARK SCORE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function calculateSparkScore(user, target) {
-            let abMatches = 0;
-            for (let i = 0; i < 15; i++) {
-                if (user.matrixAnswers[i] === target.matrixAnswers[i]) abMatches++;
-            }
-            const abScore = (abMatches / 15) * 100;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 8. PERSISTENCE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function saveStateToStorage() {
+    state.subQuestionIndex = subQuestionIndex;
+    localStorage.setItem('spark_app_state_2026', JSON.stringify(state));
+}
 
-            let totalListIntersectionPct = 0;
-            for (let qIdx = 15; qIdx <= 19; qIdx++) {
-                const arrA = user.listAnswers[qIdx] || [];
-                const arrB = target.listAnswers[qIdx] || [];
-                if (arrA.length === 0 && arrB.length === 0) {
-                    totalListIntersectionPct += 100;
-                    continue;
-                }
-                const setB = new Set(arrB);
-                const intersection = arrA.filter(x => setB.has(x));
-                const totalUnique = new Set([...arrA, ...arrB]).size;
-                totalListIntersectionPct += totalUnique > 0 ? (intersection.length / totalUnique) * 100 : 0;
-            }
-            const listScore = totalListIntersectionPct / 5;
-            const sparkScore = (abScore * 0.5) + (listScore * 0.5);
-            return Math.round(sparkScore);
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 8. PERSISTENCE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function saveStateToStorage() {
-            state.subQuestionIndex = subQuestionIndex;
-            localStorage.setItem('spark_app_state_2026', JSON.stringify(state));
-        }
-
-        function loadStateFromStorage() {
-            const saved = localStorage.getItem('spark_app_state_2026');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    Object.assign(state, parsed);
-                    subQuestionIndex = state.subQuestionIndex || 0;
-                    if (state.darkMode) {
-                        document.body.classList.add('dark-mode');
-                        document.body.classList.remove('light-mode');
-                        document.getElementById('darkModeToggle')?.classList.add('active');
-                    }
-                    return true;
-                } catch (e) { /* fall through */ }
-            }
-            return false;
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 9. SUPABASE SYNC
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const tgUser = tg?.initDataUnsafe?.user;
-        const currentUser = {
-            id: tgUser?.id || 99999999,
-            name: tgUser?.first_name || "New Explorer",
-            username: tgUser?.username || "anonymous_spark",
-            photo_url: tgUser?.photo_url || "",
-            language_code: tgUser?.language_code || detectUserLanguage()
-        };
-
-        async function syncTelegramUserWithDatabase() {
-            try {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-
-                if (error && error.code === 'PGRST116') {
-                    console.log("New user detected. Starting onboarding.");
-                    state.userProfile.id = currentUser.id;
-                    state.userProfile.name = currentUser.name;
-                    state.userProfile.username = currentUser.username;
-                    state.userProfile.photo = currentUser.photo_url;
-                    state.userProfile.language = currentUser.language_code;
-                    state.onboardingStep = 1;
-                    renderOnboardingStep();
-                } else if (profile) {
-                    console.log("Welcome back! Loading profile...");
-                    state.userProfile = {
-                        id: profile.id,
-                        name: profile.name,
-                        username: profile.username,
-                        photo: profile.photo_url,
-                        age: profile.age || "",
-                        gender: profile.gender || "",
-                        lookingFor: profile.looking_for || "",
-                        location: profile.location || "",
-                        bio: profile.bio || "",
-                        matrixAnswers: profile.matrix_answers || [],
-                        listAnswers: profile.list_answers || {},
-                        language: profile.language_code || detectUserLanguage()
-                    };
-                    state.onboardingStep = 12;
-                    saveStateToStorage();
-                    document.getElementById('view-onboarding').classList.add('hidden');
-                    document.getElementById('view-app-main').classList.remove('hidden');
-                    document.getElementById('app-nav-bar').classList.remove('hidden');
-                    switchTab('match');
-                }
-            } catch (err) {
-                console.error("Database connection error:", err);
-                // Fallback to local mode
-                loadStateFromStorage();
-                if (state.onboardingStep > 11) {
-                    document.getElementById('view-onboarding').classList.add('hidden');
-                    document.getElementById('view-app-main').classList.remove('hidden');
-                    document.getElementById('app-nav-bar').classList.remove('hidden');
-                    switchTab('match');
-                } else {
-                    renderOnboardingStep();
-                }
-            }
-        }
-
-        async function saveProfileToCloud() {
-            const p = state.userProfile;
-            const { error } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: p.id,
-                    name: p.name,
-                    username: p.username,
-                    photo_url: p.photo,
-                    age: parseInt(p.age) || null,
-                    gender: p.gender,
-                    looking_for: p.lookingFor,
-                    location: p.location,
-                    bio: p.bio,
-                    matrix_answers: p.matrixAnswers,
-                    list_answers: p.listAnswers,
-                    language_code: p.language || detectUserLanguage(),
-                    updated_at: new Date().toISOString()
-                });
-
-            if (error) {
-                console.error("Error saving profile:", error);
-            } else {
-                console.log("Profile saved to Supabase!");
-            }
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 10. DARK MODE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function toggleDarkMode() {
-            state.darkMode = !state.darkMode;
-            const toggle = document.getElementById('darkModeToggle');
+function loadStateFromStorage() {
+    const saved = localStorage.getItem('spark_app_state_2026');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            Object.assign(state, parsed);
+            subQuestionIndex = state.subQuestionIndex || 0;
             if (state.darkMode) {
                 document.body.classList.add('dark-mode');
                 document.body.classList.remove('light-mode');
-                toggle?.classList.add('active');
-            } else {
-                document.body.classList.remove('dark-mode');
-                document.body.classList.add('light-mode');
-                toggle?.classList.remove('active');
+                document.getElementById('darkModeToggle')?.classList.add('active');
             }
+            return true;
+        } catch (e) { /* fall through */ }
+    }
+    return false;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 9. GET TELEGRAM USER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const tgUser = tg?.initDataUnsafe?.user;
+const currentUser = {
+    id: tgUser?.id || Math.floor(Math.random() * 10000000),
+    name: tgUser?.first_name || "Explorer",
+    username: tgUser?.username || "spark_user_" + Math.floor(Math.random() * 1000),
+    photo_url: tgUser?.photo_url || "",
+    language_code: tgUser?.language_code || detectUserLanguage()
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 10. SUPABASE SYNC (only if configured)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function syncTelegramUserWithDatabase() {
+    if (!useSupabase) {
+        // No Supabase – use local storage
+        const loaded = loadStateFromStorage();
+        if (!loaded) {
+            state.userProfile.id = currentUser.id;
+            state.userProfile.name = currentUser.name;
+            state.userProfile.username = currentUser.username;
+            state.userProfile.photo = currentUser.photo_url;
+            state.userProfile.language = currentUser.language_code;
+            state.onboardingStep = 1;
+            state.sampleProfiles = generateSampleProfiles();
+            state.incoming = [100, 102];
             saveStateToStorage();
         }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 11. LANGUAGE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function openLanguageSettings() {
-            const modal = document.getElementById('lang-modal');
-            const list = document.getElementById('lang-list');
-            list.innerHTML = '';
-            LANGUAGES.forEach(lang => {
-                const div = document.createElement('div');
-                div.className = `lang-option ${state.language === lang.code ? 'selected' : ''}`;
-                div.innerHTML = `<span class="lang-flag">${lang.flag}</span><span class="lang-name">${lang.name}</span>`;
-                div.onclick = () => {
-                    state.language = lang.code;
-                    state.userProfile.language = lang.code;
-                    document.getElementById('lang-indicator').textContent = `🌐 ${lang.code.toUpperCase()}`;
-                    document.getElementById('current-lang-display').textContent = lang.name;
-                    saveStateToStorage();
-                    renderOnboardingStep();
-                    closeLanguageSettings();
-                };
-                list.appendChild(div);
-            });
-            modal.style.display = 'flex';
-        }
-
-        function closeLanguageSettings() {
-            document.getElementById('lang-modal').style.display = 'none';
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 12. SETTINGS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function openNotificationsSettings() {
-            alert('🔔 Notifications Settings\n\n• Match notifications: On\n• Message notifications: On\n• Daily suggestions: On\n\n(Coming soon: full push notification support)');
-        }
-
-        function openPrivacySettings() {
-            alert('🔒 Privacy Settings\n\n• Profile visibility: Everyone\n• Show online status: Yes\n• Block list: Empty\n• Data sharing: App only\n\n(Coming soon: full privacy controls)');
-        }
-
-        function editProfile() {
-            const u = state.userProfile;
-            const newName = prompt('Edit your name:', u.name) || u.name;
-            const newBio = prompt('Edit your bio:', u.bio || '') || u.bio;
-            const newLocation = prompt('Edit your location:', u.location || '') || u.location;
-            if (newName) u.name = newName;
-            if (newBio) u.bio = newBio;
-            if (newLocation) u.location = newLocation;
-            saveStateToStorage();
-            saveProfileToCloud();
-            renderProfileTab();
-        }
-
-        function logoutUser() {
-            if (confirm('Are you sure you want to clear all local data?')) {
-                localStorage.clear();
-                window.location.reload();
-            }
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 13. INIT
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function initApp() {
-            // Set language
-            const detected = detectUserLanguage();
-            state.language = detected;
-            state.userProfile.language = detected;
-            const langObj = LANGUAGES.find(l => l.code === detected);
-            document.getElementById('lang-indicator').textContent = `🌐 ${detected.toUpperCase()}`;
-            document.getElementById('current-lang-display').textContent = langObj?.name || 'English';
-
-            // Load from storage first
-            const loaded = loadStateFromStorage();
-            if (!loaded) {
-                state.sampleProfiles = generateSampleProfiles();
-                state.incoming = [100, 102];
-                saveStateToStorage();
-            }
-
-            // Sync with Supabase
-            if (currentUser.id && currentUser.id !== 99999999) {
-                syncTelegramUserWithDatabase();
-            } else {
-                // Fallback: no Telegram user, use local
-                if (state.onboardingStep > 11) {
-                    document.getElementById('view-onboarding').classList.add('hidden');
-                    document.getElementById('view-app-main').classList.remove('hidden');
-                    document.getElementById('app-nav-bar').classList.remove('hidden');
-                    switchTab('match');
-                } else {
-                    renderOnboardingStep();
-                }
-            }
-
-            updateGlobalBadges();
-            renderChatsList();
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 14. ONBOARDING RENDER
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderOnboardingStep() {
-            const container = document.getElementById('onboarding-slide-container');
-            const progress = document.getElementById('onboarding-progress');
-            const btnBack = document.getElementById('btn-onboard-back');
-            const btnNext = document.getElementById('btn-onboard-next');
-
-            const step = state.onboardingStep;
-            progress.style.width = `${(step / 11) * 100}%`;
-            btnBack.style.display = step > 1 ? 'block' : 'none';
-            btnNext.innerText = step === 11 ? "Enter Spark ⚡" : (step === 1 ? "Get Started 🚀" : "Continue ➡️");
-            container.innerHTML = "";
-
-            switch (step) {
-                case 1:
-                    container.innerHTML =
-                        `
-                        <div class="text-center flex flex-col items-center gap-4 py-4">
-                            <span class="text-7xl animate-pulse">✨</span>
-                            <h2 class="text-3xl font-bold tracking-tight text-[#1c1c1e] dark:text-white">Find Your Spark</h2>
-                            <p class="text-apple-secondary max-w-xs text-sm leading-relaxed">Skip superficial small talk. Match on values, interests, and conversational compatibility instantly.</p>
-                        </div>`;
-                    break;
-                case 2:
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">What should people call you?</label>
-                            <input type="text" id="onboard-input-name" placeholder="e.g. Alex" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-lg focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.name || ''}">
-                        </div>`;
-                    break;
-                case 3:
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Choose a unique handle</label>
-                            <div class="relative">
-                                <span class="absolute left-4 top-4 text-apple-secondary font-medium">@</span>
-                                <input type="text" id="onboard-input-username" placeholder="username" class="w-full bg-apple-input border border-apple rounded-2xl pl-9 pr-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-lg focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.username || ''}">
-                            </div>
-                            <p class="text-xs text-apple-secondary mt-1">3-20 characters, letters, numbers, underscores</p>
-                        </div>`;
-                    break;
-                case 4:
-                    container.innerHTML =
-                        `
-                        <div class="text-center flex flex-col items-center gap-4">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide block w-full text-left">Profile Picture</label>
-                            <img src="${state.userProfile.photo || ''}" class="w-24 h-24 rounded-full object-cover border-4 border-[#007AFF] bg-apple-input shadow-lg" id="onboard-avatar-preview">
-                            <div class="grid grid-cols-3 gap-3 w-full">
-                                <button type="button" onclick="useTelegramPhoto()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Use Telegram</button>
-                                <button type="button" onclick="useDefaultPhoto()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Default</button>
-                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Upload</button>
-                            </div>
-                            <input type="file" id="galleryInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
-                        </div>`;
-                    break;
-                case 5:
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">How old are you?</label>
-                            <input type="number" id="onboard-input-age" placeholder="e.g. 25" min="16" max="99" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-bold text-2xl text-center max-w-[140px] mx-auto focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.age || ''}">
-                        </div>`;
-                    break;
-                case 6:
-                    const genders = ["Male", "Female", "Non-binary", "Prefer not to say"];
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-2.5">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Your Gender Identity</label>
-                            ${genders.map(g => `
-                                <button onclick="selectGender('${g}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.gender === g ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'} text-sm transition-all">${g}</button>
-                            `).join('')}
-                        </div>`;
-                    break;
-                case 7:
-                    const looking = ["Male", "Female", "Non-binary", "Anyone"];
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-2.5">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Who are you looking for?</label>
-                            ${looking.map(l => `
-                                <button onclick="selectLookingFor('${l}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.lookingFor === l ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'} text-sm transition-all">${l}</button>
-                            `).join('')}
-                        </div>`;
-                    break;
-                case 8:
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-3">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Your Location</label>
-                            <input type="text" id="onboard-input-loc" placeholder="e.g. New York, USA" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-md focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.location || ''}">
-                        </div>`;
-                    break;
-                case 9:
-                    renderQuestionnaireSubflow(container);
-                    break;
-                case 10:
-                    container.innerHTML =
-                        `
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Write a short bio</label>
-                            <textarea id="onboard-input-bio" rows="4" class="w-full bg-apple-input border border-apple rounded-2xl p-4 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:border-[#007AFF] resize-none transition-all" placeholder="What makes you a great friend?">${state.userProfile.bio || ''}</textarea>
-                            <p class="text-xs text-apple-secondary text-right" id="bio-counter">${(state.userProfile.bio || '').length} / 300</p>
-                        </div>`;
-                    break;
-                case 11:
-                    container.innerHTML =
-                        `
-                        <div class="text-center flex flex-col items-center gap-4 py-6">
-                            <span class="text-6xl animate-bounce">🔥</span>
-                            <h3 class="text-2xl font-bold text-[#1c1c1e] dark:text-white">You're Ready!</h3>
-                            <p class="text-apple-secondary text-sm max-w-xs">Your profile is complete. Start matching with people who share your vibe.</p>
-                        </div>`;
-                    break;
-            }
-        }
-
-        function renderQuestionnaireSubflow(container) {
-            const q = QUESTIONS[subQuestionIndex];
-            const isMatrix = q.type === "matrix";
-
-            let html = `
-                    <div class="flex flex-col h-full justify-between">
-                        <div>
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="text-[10px] font-bold text-[#007AFF] tracking-wide uppercase bg-[#007AFF]/10 px-2.5 py-0.5 rounded-full border border-[#007AFF]/20">Question ${subQuestionIndex + 1} of 20</span>
-                                <span class="text-xs font-mono font-medium text-apple-secondary">${Math.round(((subQuestionIndex + 1) / 20) * 100)}%</span>
-                            </div>
-                            <h3 class="text-lg font-bold text-[#1c1c1e] dark:text-white leading-snug mb-4">${q.text}</h3>
-                        </div>
-                        <div class="flex flex-col gap-2.5 max-h-[280px] overflow-y-auto hide-scrollbar py-1">`;
-
-            if (isMatrix) {
-                const currentAns = state.userProfile.matrixAnswers[subQuestionIndex];
-                q.options.forEach((opt, idx) => {
-                    const isSelected = (currentAns === idx);
-                    html += `
-                            <button onclick="handleMatrixAnswer(${idx})" class="w-full p-4 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'}">
-                                <span class="checkmark">✓</span> ${opt}
-                            </button>`;
-                });
-            } else {
-                const currentSelections = state.userProfile.listAnswers[subQuestionIndex] || [];
-                q.options.forEach(opt => {
-                    const isSelected = currentSelections.includes(opt);
-                    html += `
-                            <button onclick="handleMultiAnswer('${opt}')" class="w-full p-3.5 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'}">
-                                <span class="checkmark">✓</span> ${opt}
-                            </button>`;
-                });
-            }
-
-            html += `</div></div>`;
-            container.innerHTML = html;
-            document.getElementById('btn-onboard-next').innerText = isMatrix ? "Next ➡️" : "Confirm Selections ➡️";
-        }
-
-        // ─── Onboarding Handlers ───
-        window.selectGender = function(val) {
-            state.userProfile.gender = val;
-            renderOnboardingStep();
-        };
-
-        window.selectLookingFor = function(val) {
-            state.userProfile.lookingFor = val;
-            renderOnboardingStep();
-        };
-
-        window.useTelegramPhoto = function() {
-            const url = currentUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userProfile.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
-            state.userProfile.photo = url;
-            document.getElementById('onboard-avatar-preview').src = url;
-        };
-
-        window.useDefaultPhoto = function() {
-            const url =
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userProfile.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
-            state.userProfile.photo = url;
-            document.getElementById('onboard-avatar-preview').src = url;
-        };
-
-        window.handleFileSelect = function(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    state.userProfile.photo = e.target.result;
-                    document.getElementById('onboard-avatar-preview').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        window.handleMatrixAnswer = function(idx) {
-            state.userProfile.matrixAnswers[subQuestionIndex] = idx;
-            renderOnboardingStep();
-        };
-
-        window.handleMultiAnswer = function(opt) {
-            if (!state.userProfile.listAnswers[subQuestionIndex]) state.userProfile.listAnswers[subQuestionIndex] = [];
-            let current = state.userProfile.listAnswers[subQuestionIndex];
-            if (current.includes(opt)) {
-                state.userProfile.listAnswers[subQuestionIndex] = current.filter(x => x !== opt);
-            } else {
-                current.push(opt);
-            }
-            renderOnboardingStep();
-        };
-
-        // ─── Navigation ───
-        document.getElementById('btn-onboard-next').onclick = function() {
-            const step = state.onboardingStep;
-
-            // Capture inputs
-            if (step === 2) {
-                const inp = document.getElementById('onboard-input-name');
-                if (!inp || !inp.value.trim()) { alert('Please enter your name.'); return; }
-                state.userProfile.name = inp.value.trim();
-            }
-            if (step === 3) {
-                const inp = document.getElementById('onboard-input-username');
-                if (!inp || !inp.value.trim()) { alert('Please choose a username.'); return; }
-                const val = inp.value.trim().toLowerCase();
-                if (!/^[a-z0-9_]{3,20}$/.test(val)) {
-                    alert('Username must be 3-20 characters, letters, numbers, underscores only.');
-                    return;
-                }
-                state.userProfile.username = val;
-            }
-            if (step === 4) {
-                if (!state.userProfile.photo) {
-                    useDefaultPhoto();
-                }
-            }
-            if (step === 5) {
-                const inp = document.getElementById('onboard-input-age');
-                if (!inp || !inp.value.trim()) { alert('Please enter your age.'); return; }
-                const age = parseInt(inp.value);
-                if (isNaN(age) || age < 16 || age > 99) { alert('Please enter a valid age (16-99).'); return; }
-                state.userProfile.age = age;
-            }
-            if (step === 6) {
-                if (!state.userProfile.gender) { alert('Please select your gender.'); return; }
-            }
-            if (step === 7) {
-                if (!state.userProfile.lookingFor) { alert('Please select who you\'re looking for.'); return; }
-            }
-            if (step === 8) {
-                const inp = document.getElementById('onboard-input-loc');
-                if (!inp || !inp.value.trim()) { alert('Please enter your location.'); return; }
-                state.userProfile.location = inp.value.trim();
-            }
-            if (step === 9) {
-                const q = QUESTIONS[subQuestionIndex];
-                if (q.type === 'matrix') {
-                    if (state.userProfile.matrixAnswers[subQuestionIndex] === undefined) {
-                        alert('Please select an option.');
-                        return;
-                    }
-                } else {
-                    const selections = state.userProfile.listAnswers[subQuestionIndex] || [];
-                    if (selections.length === 0) {
-                        alert('Please select at least one option.');
-                        return;
-                    }
-                }
-                if (subQuestionIndex < QUESTIONS.length - 1) {
-                    subQuestionIndex++;
-                    state.subQuestionIndex = subQuestionIndex;
-                    saveStateToStorage();
-                    renderOnboardingStep();
-                } else {
-                    state.onboardingStep = 10;
-                    saveStateToStorage();
-                    renderOnboardingStep();
-                }
-                return;
-            }
-            if (step === 10) {
-                const inp = document.getElementById('onboard-input-bio');
-                if (inp && inp.value.trim().length > 0) {
-                    state.userProfile.bio = inp.value.trim();
-                } else {
-                    state.userProfile.bio = "Just a friendly soul looking for connections!";
-                }
-            }
-
-            if (step < 11) {
-                state.onboardingStep++;
-                saveStateToStorage();
-                renderOnboardingStep();
-            } else {
-                // Complete onboarding
-                state.onboardingStep = 12;
-                state.hasCompletedOnboarding = true;
-                saveStateToStorage();
-                saveProfileToCloud();
-                document.getElementById('view-onboarding').classList.add('hidden');
-                document.getElementById('view-app-main').classList.remove('hidden');
-                document.getElementById('app-nav-bar').classList.remove('hidden');
-                switchTab('match');
-            }
-        };
-
-      document.getElementById('btn-onboard-back').onclick = function() {
-    const step = state.onboardingStep;
-    if (step === 9 && subQuestionIndex > 0) {
-        subQuestionIndex--;
-        state.subQuestionIndex = subQuestionIndex;
-        saveStateToStorage();
         renderOnboardingStep();
         return;
     }
-    if (step > 1) {
-        state.onboardingStep--;
-        saveStateToStorage();
+
+    try {
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+        if (error && error.code === 'PGRST116') {
+            console.log("New user detected. Starting onboarding.");
+            state.userProfile.id = currentUser.id;
+            state.userProfile.name = currentUser.name;
+            state.userProfile.username = currentUser.username;
+            state.userProfile.photo = currentUser.photo_url;
+            state.userProfile.language = currentUser.language_code;
+            state.onboardingStep = 1;
+            renderOnboardingStep();
+        } else if (profile) {
+            console.log("Welcome back! Loading profile...");
+            state.userProfile = {
+                id: profile.id,
+                name: profile.name,
+                username: profile.username,
+                photo: profile.photo_url,
+                age: profile.age || "",
+                gender: profile.gender || "",
+                lookingFor: profile.looking_for || "",
+                location: profile.location || "",
+                bio: profile.bio || "",
+                matrixAnswers: profile.matrix_answers || [],
+                listAnswers: profile.list_answers || {},
+                language: profile.language_code || detectUserLanguage()
+            };
+            state.onboardingStep = 12;
+            saveStateToStorage();
+            document.getElementById('view-onboarding').classList.add('hidden');
+            document.getElementById('view-app-main').classList.remove('hidden');
+            document.getElementById('app-nav-bar').classList.remove('hidden');
+            switchTab('match');
+        }
+    } catch (err) {
+        console.error("Database connection error:", err);
+        // Fallback to local mode
+        const loaded = loadStateFromStorage();
+        if (!loaded) {
+            state.userProfile.id = currentUser.id;
+            state.userProfile.name = currentUser.name;
+            state.userProfile.username = currentUser.username;
+            state.userProfile.photo = currentUser.photo_url;
+            state.userProfile.language = currentUser.language_code;
+            state.onboardingStep = 1;
+            state.sampleProfiles = generateSampleProfiles();
+            state.incoming = [100, 102];
+            saveStateToStorage();
+        }
         renderOnboardingStep();
+    }
+}
+
+async function saveProfileToCloud() {
+    if (!useSupabase) return;
+    const p = state.userProfile;
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({
+            id: p.id,
+            name: p.name,
+            username: p.username,
+            photo_url: p.photo,
+            age: parseInt(p.age) || null,
+            gender: p.gender,
+            looking_for: p.lookingFor,
+            location: p.location,
+            bio: p.bio,
+            matrix_answers: p.matrixAnswers,
+            list_answers: p.listAnswers,
+            language_code: p.language || detectUserLanguage(),
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error("Error saving profile:", error);
+    } else {
+        console.log("Profile saved to Supabase!");
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 11. DARK MODE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleDarkMode() {
+    state.darkMode = !state.darkMode;
+    const toggle = document.getElementById('darkModeToggle');
+    if (state.darkMode) {
+        document.body.classList.add('dark-mode');
+        document.body.classList.remove('light-mode');
+        toggle?.classList.add('active');
+    } else {
+        document.body.classList.remove('dark-mode');
+        document.body.classList.add('light-mode');
+        toggle?.classList.remove('active');
+    }
+    saveStateToStorage();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 12. LANGUAGE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openLanguageSettings() {
+    const modal = document.getElementById('lang-modal');
+    const list = document.getElementById('lang-list');
+    list.innerHTML = '';
+    LANGUAGES.forEach(lang => {
+        const div = document.createElement('div');
+        div.className = `lang-option ${state.language === lang.code ? 'selected' : ''}`;
+        div.innerHTML = `<span class="lang-flag">${lang.flag}</span><span class="lang-name">${lang.name}</span>`;
+        div.onclick = () => {
+            state.language = lang.code;
+            state.userProfile.language = lang.code;
+            document.getElementById('lang-indicator').textContent = `🌐 ${lang.code.toUpperCase()}`;
+            document.getElementById('current-lang-display').textContent = lang.name;
+            saveStateToStorage();
+            renderOnboardingStep();
+            closeLanguageSettings();
+        };
+        list.appendChild(div);
+    });
+    modal.style.display = 'flex';
+}
+
+function closeLanguageSettings() {
+    document.getElementById('lang-modal').style.display = 'none';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 13. SETTINGS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openNotificationsSettings() {
+    alert('🔔 Notifications Settings\n\n• Match notifications: On\n• Message notifications: On\n• Daily suggestions: On\n\n(Coming soon: full push notification support)');
+}
+
+function openPrivacySettings() {
+    alert('🔒 Privacy Settings\n\n• Profile visibility: Everyone\n• Show online status: Yes\n• Block list: Empty\n• Data sharing: App only\n\n(Coming soon: full privacy controls)');
+}
+
+function editProfile() {
+    const u = state.userProfile;
+    const newName = prompt('Edit your name:', u.name) || u.name;
+    const newBio = prompt('Edit your bio:', u.bio || '') || u.bio;
+    const newLocation = prompt('Edit your location:', u.location || '') || u.location;
+    if (newName) u.name = newName;
+    if (newBio) u.bio = newBio;
+    if (newLocation) u.location = newLocation;
+    saveStateToStorage();
+    saveProfileToCloud();
+    renderProfileTab();
+}
+
+function logoutUser() {
+    if (confirm('Are you sure you want to clear all local data?')) {
+        localStorage.clear();
+        window.location.reload();
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 14. INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function initApp() {
+    // Set language
+    const detected = detectUserLanguage();
+    state.language = detected;
+    state.userProfile.language = detected;
+    const langObj = LANGUAGES.find(l => l.code === detected);
+    document.getElementById('lang-indicator').textContent = `🌐 ${detected.toUpperCase()}`;
+    document.getElementById('current-lang-display').textContent = langObj?.name || 'English';
+
+    // Load from storage first
+    const loaded = loadStateFromStorage();
+    if (!loaded) {
+        state.sampleProfiles = generateSampleProfiles();
+        state.incoming = [100, 102];
+        state.userProfile.id = currentUser.id;
+        state.userProfile.name = currentUser.name;
+        state.userProfile.username = currentUser.username;
+        state.userProfile.photo = currentUser.photo_url;
+        state.userProfile.language = currentUser.language_code;
+        state.onboardingStep = 1;
+        saveStateToStorage();
+    }
+
+    // IMPORTANT: Make sure onboarding step is valid
+    if (state.onboardingStep < 1 || state.onboardingStep > 12) {
+        state.onboardingStep = 1;
+        saveStateToStorage();
+    }
+
+    // Sync with Supabase (or use local)
+    syncTelegramUserWithDatabase();
+
+    updateGlobalBadges();
+    renderChatsList();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 15. ONBOARDING RENDER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderOnboardingStep() {
+    const container = document.getElementById('onboarding-slide-container');
+    const progress = document.getElementById('onboarding-progress');
+    const btnBack = document.getElementById('btn-onboard-back');
+    const btnNext = document.getElementById('btn-onboard-next');
+
+    const step = state.onboardingStep;
+    progress.style.width = `${(step / 11) * 100}%`;
+    btnBack.style.display = step > 1 ? 'block' : 'none';
+    btnNext.innerText = step === 11 ? "Enter Spark ⚡" : (step === 1 ? "Get Started 🚀" : "Continue ➡️");
+    container.innerHTML = "";
+
+    switch (step) {
+        case 1:
+            container.innerHTML =
+                `
+                <div class="text-center flex flex-col items-center gap-4 py-4">
+                    <span class="text-7xl animate-pulse">✨</span>
+                    <h2 class="text-3xl font-bold tracking-tight text-[#1c1c1e] dark:text-white">Find Your Spark</h2>
+                    <p class="text-apple-secondary max-w-xs text-sm leading-relaxed">Skip superficial small talk. Match on values, interests, and conversational compatibility instantly.</p>
+                </div>`;
+            break;
+        case 2:
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">What should people call you?</label>
+                    <input type="text" id="onboard-input-name" placeholder="e.g. Alex" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-lg focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.name || ''}">
+                </div>`;
+            break;
+        case 3:
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Choose a unique handle</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-4 text-apple-secondary font-medium">@</span>
+                        <input type="text" id="onboard-input-username" placeholder="username" class="w-full bg-apple-input border border-apple rounded-2xl pl-9 pr-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-lg focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.username || ''}">
+                    </div>
+                    <p class="text-xs text-apple-secondary mt-1">3-20 characters, letters, numbers, underscores</p>
+                </div>`;
+            break;
+        case 4:
+            container.innerHTML =
+                `
+                <div class="text-center flex flex-col items-center gap-4">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide block w-full text-left">Profile Picture</label>
+                    <img src="${state.userProfile.photo || ''}" class="w-24 h-24 rounded-full object-cover border-4 border-[#007AFF] bg-apple-input shadow-lg" id="onboard-avatar-preview">
+                    <div class="grid grid-cols-3 gap-3 w-full">
+                        <button type="button" onclick="useTelegramPhoto()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Use Telegram</button>
+                        <button type="button" onclick="useDefaultPhoto()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Default</button>
+                        <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Upload</button>
+                    </div>
+                    <input type="file" id="galleryInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
+                </div>`;
+            break;
+        case 5:
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">How old are you?</label>
+                    <input type="number" id="onboard-input-age" placeholder="e.g. 25" min="16" max="99" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-bold text-2xl text-center max-w-[140px] mx-auto focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.age || ''}">
+                </div>`;
+            break;
+        case 6:
+            const genders = ["Male", "Female", "Non-binary", "Prefer not to say"];
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-2.5">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Your Gender Identity</label>
+                    ${genders.map(g => `
+                        <button onclick="selectGender('${g}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.gender === g ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'} text-sm transition-all">${g}</button>
+                    `).join('')}
+                </div>`;
+            break;
+        case 7:
+            const looking = ["Male", "Female", "Non-binary", "Anyone"];
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-2.5">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Who are you looking for?</label>
+                    ${looking.map(l => `
+                        <button onclick="selectLookingFor('${l}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.lookingFor === l ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'} text-sm transition-all">${l}</button>
+                    `).join('')}
+                </div>`;
+            break;
+        case 8:
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-3">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Your Location</label>
+                    <input type="text" id="onboard-input-loc" placeholder="e.g. New York, USA" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-md focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.location || ''}">
+                </div>`;
+            break;
+        case 9:
+            renderQuestionnaireSubflow(container);
+            break;
+        case 10:
+            container.innerHTML =
+                `
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Write a short bio</label>
+                    <textarea id="onboard-input-bio" rows="4" class="w-full bg-apple-input border border-apple rounded-2xl p-4 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:border-[#007AFF] resize-none transition-all" placeholder="What makes you a great friend?">${state.userProfile.bio || ''}</textarea>
+                    <p class="text-xs text-apple-secondary text-right" id="bio-counter">${(state.userProfile.bio || '').length} / 300</p>
+                </div>`;
+            break;
+        case 11:
+            container.innerHTML =
+                `
+                <div class="text-center flex flex-col items-center gap-4 py-6">
+                    <span class="text-6xl animate-bounce">🔥</span>
+                    <h3 class="text-2xl font-bold text-[#1c1c1e] dark:text-white">You're Ready!</h3>
+                    <p class="text-apple-secondary text-sm max-w-xs">Your profile is complete. Start matching with people who share your vibe.</p>
+                </div>`;
+            break;
+        default:
+            // If step is invalid, reset to step 1
+            state.onboardingStep = 1;
+            saveStateToStorage();
+            renderOnboardingStep();
+            return;
+    }
+}
+
+function renderQuestionnaireSubflow(container) {
+    const q = QUESTIONS[subQuestionIndex];
+    const isMatrix = q.type === "matrix";
+
+    let html = `
+            <div class="flex flex-col h-full justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-bold text-[#007AFF] tracking-wide uppercase bg-[#007AFF]/10 px-2.5 py-0.5 rounded-full border border-[#007AFF]/20">Question ${subQuestionIndex + 1} of 20</span>
+                        <span class="text-xs font-mono font-medium text-apple-secondary">${Math.round(((subQuestionIndex + 1) / 20) * 100)}%</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-[#1c1c1e] dark:text-white leading-snug mb-4">${q.text}</h3>
+                </div>
+                <div class="flex flex-col gap-2.5 max-h-[280px] overflow-y-auto hide-scrollbar py-1">`;
+
+    if (isMatrix) {
+        const currentAns = state.userProfile.matrixAnswers[subQuestionIndex];
+        q.options.forEach((opt, idx) => {
+            const isSelected = (currentAns === idx);
+            html += `
+                    <button onclick="handleMatrixAnswer(${idx})" class="w-full p-4 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'}">
+                        <span class="checkmark">✓</span> ${opt}
+                    </button>`;
+        });
+    } else {
+        const currentSelections = state.userProfile.listAnswers[subQuestionIndex] || [];
+        q.options.forEach(opt => {
+            const isSelected = currentSelections.includes(opt);
+            html += `
+                    <button onclick="handleMultiAnswer('${opt}')" class="w-full p-3.5 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'}">
+                        <span class="checkmark">✓</span> ${opt}
+                    </button>`;
+        });
+    }
+
+    html += `</div></div>`;
+    container.innerHTML = html;
+    document.getElementById('btn-onboard-next').innerText = isMatrix ? "Next ➡️" : "Confirm Selections ➡️";
+}
+
+// ─── Onboarding Handlers ───
+window.selectGender = function(val) {
+    state.userProfile.gender = val;
+    renderOnboardingStep();
+};
+
+window.selectLookingFor = function(val) {
+    state.userProfile.lookingFor = val;
+    renderOnboardingStep();
+};
+
+window.useTelegramPhoto = function() {
+    const url = currentUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userProfile.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
+    state.userProfile.photo = url;
+    document.getElementById('onboard-avatar-preview').src = url;
+};
+
+window.useDefaultPhoto = function() {
+    const url =
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userProfile.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
+    state.userProfile.photo = url;
+    document.getElementById('onboard-avatar-preview').src = url;
+};
+
+window.handleFileSelect = function(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            state.userProfile.photo = e.target.result;
+            document.getElementById('onboard-avatar-preview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     }
 };
 
-        // ─── Bio Counter ───
-        document.addEventListener('input', function(e) {
-            if (e.target && e.target.id === 'onboard-input-bio') {
-                const counter = document.getElementById('bio-counter');
-                if (counter) {
-                    const len = e.target.value.length;
-                    counter.textContent = `${len} / 300`;
-                    if (len > 300) {
-                        e.target.value = e.target.value.substring(0, 300);
-                        counter.textContent = `300 / 300`;
-                    }
-                }
+window.handleMatrixAnswer = function(idx) {
+    state.userProfile.matrixAnswers[subQuestionIndex] = idx;
+    renderOnboardingStep();
+};
+
+window.handleMultiAnswer = function(opt) {
+    if (!state.userProfile.listAnswers[subQuestionIndex]) state.userProfile.listAnswers[subQuestionIndex] = [];
+    let current = state.userProfile.listAnswers[subQuestionIndex];
+    if (current.includes(opt)) {
+        state.userProfile.listAnswers[subQuestionIndex] = current.filter(x => x !== opt);
+    } else {
+        current.push(opt);
+    }
+    renderOnboardingStep();
+};
+
+// ─── Navigation ───
+document.getElementById('btn-onboard-next').onclick = function() {
+    const step = state.onboardingStep;
+
+    // Capture inputs
+    if (step === 2) {
+        const inp = document.getElementById('onboard-input-name');
+        if (!inp || !inp.value.trim()) { alert('Please enter your name.'); return; }
+        state.userProfile.name = inp.value.trim();
+    }
+    if (step === 3) {
+        const inp = document.getElementById('onboard-input-username');
+        if (!inp || !inp.value.trim()) { alert('Please choose a username.'); return; }
+        const val = inp.value.trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,20}$/.test(val)) {
+            alert('Username must be 3-20 characters, letters, numbers, underscores only.');
+            return;
+        }
+        state.userProfile.username = val;
+    }
+    if (step === 4) {
+        if (!state.userProfile.photo) {
+            useDefaultPhoto();
+        }
+    }
+    if (step === 5) {
+        const inp = document.getElementById('onboard-input-age');
+        if (!inp || !inp.value.trim()) { alert('Please enter your age.'); return; }
+        const age = parseInt(inp.value);
+        if (isNaN(age) || age < 16 || age > 99) { alert('Please enter a valid age (16-99).'); return; }
+        state.userProfile.age = age;
+    }
+    if (step === 6) {
+        if (!state.userProfile.gender) { alert('Please select your gender.'); return; }
+    }
+    if (step === 7) {
+        if (!state.userProfile.lookingFor) { alert('Please select who you\'re looking for.'); return; }
+    }
+    if (step === 8) {
+        const inp = document.getElementById('onboard-input-loc');
+        if (!inp || !inp.value.trim()) { alert('Please enter your location.'); return; }
+        state.userProfile.location = inp.value.trim();
+    }
+    if (step === 9) {
+        const q = QUESTIONS[subQuestionIndex];
+        if (q.type === 'matrix') {
+            if (state.userProfile.matrixAnswers[subQuestionIndex] === undefined) {
+                alert('Please select an option.');
+                return;
             }
+        } else {
+            const selections = state.userProfile.listAnswers[subQuestionIndex] || [];
+            if (selections.length === 0) {
+                alert('Please select at least one option.');
+                return;
+            }
+        }
+        if (subQuestionIndex < QUESTIONS.length - 1) {
+            subQuestionIndex++;
+            state.subQuestionIndex = subQuestionIndex;
+            saveStateToStorage();
+            renderOnboardingStep();
+        } else {
+            state.onboardingStep = 10;
+            saveStateToStorage();
+            renderOnboardingStep();
+        }
+        return;
+    }
+    if (step === 10) {
+        const inp = document.getElementById('onboard-input-bio');
+        if (inp && inp.value.trim().length > 0) {
+            state.userProfile.bio = inp.value.trim();
+        } else {
+            state.userProfile.bio = "Just a friendly soul looking for connections!";
+        }
+    }
+
+    if (step < 11) {
+        state.onboardingStep++;
+        saveStateToStorage();
+        renderOnboardingStep();
+    } else {
+        // Complete onboarding
+        state.onboardingStep = 12;
+        state.hasCompletedOnboarding = true;
+        saveStateToStorage();
+        saveProfileToCloud();
+        document.getElementById('view-onboarding').classList.add('hidden');
+        document.getElementById('view-app-main').classList.remove('hidden');
+        document.getElementById('app-nav-bar').classList.remove('hidden');
+        switchTab('match');
+    }
+};
+
+// ─── BACK BUTTON (FIXED) ───
+document.addEventListener('DOMContentLoaded', function() {
+    const backBtn = document.getElementById('btn-onboard-back');
+    if (backBtn) {
+        backBtn.onclick = function() {
+            const step = state.onboardingStep;
+            if (step === 9 && subQuestionIndex > 0) {
+                subQuestionIndex--;
+                state.subQuestionIndex = subQuestionIndex;
+                saveStateToStorage();
+                renderOnboardingStep();
+                return;
+            }
+            if (step > 1) {
+                state.onboardingStep--;
+                saveStateToStorage();
+                renderOnboardingStep();
+            }
+        };
+    }
+});
+
+// ─── Bio Counter ───
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'onboard-input-bio') {
+        const counter = document.getElementById('bio-counter');
+        if (counter) {
+            const len = e.target.value.length;
+            counter.textContent = `${len} / 300`;
+            if (len > 300) {
+                e.target.value = e.target.value.substring(0, 300);
+                counter.textContent = `300 / 300`;
+            }
+        }
+    }
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 16. MAIN APP TABS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.switchTab = function(target) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    const tab = document.getElementById(`tab-${target}`);
+    if (tab) tab.style.display = 'flex';
+
+    ['nav-btn-match', 'nav-btn-chats', 'nav-btn-profile'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.classList.remove('active');
+        }
+    });
+    const activeBtn = document.getElementById(`nav-btn-${target}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+
+    if (target === 'match') renderDeck();
+    if (target === 'profile') renderProfileTab();
+    if (target === 'chats') renderChatsList();
+};
+
+document.getElementById('nav-btn-match').onclick = () => switchTab('match');
+document.getElementById('nav-btn-chats').onclick = () => switchTab('chats');
+document.getElementById('nav-btn-profile').onclick = () => switchTab('profile');
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 17. MATCH DECK
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderDeck() {
+    const wrapper = document.getElementById('deck-wrapper');
+    const available = state.sampleProfiles.filter(p => !state.likes.includes(p.id));
+
+    if (available.length === 0) {
+        wrapper.innerHTML = `
+                <div class="text-center text-apple-secondary p-8 border-2 border-dashed border-apple rounded-3xl bg-apple-light dark:bg-[#1c1c1e] w-full max-w-sm">
+                    <span class="text-4xl block mb-2">🌍</span>
+                    <p class="font-bold text-sm text-[#1c1c1e] dark:text-white">No new profiles</p>
+                    <p class="text-xs text-apple-secondary mt-1">Check back later for new matches!</p>
+                </div>`;
+        return;
+    }
+
+    const currentCard = available[0];
+    const sparkScore = calculateSparkScore(state.userProfile, currentCard);
+
+    wrapper.innerHTML = `
+            <div class="match-card animate-scale-up">
+                <img src="${currentCard.photo}" class="card-image" alt="">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="card-name">${currentCard.name}, <span class="font-normal text-apple-secondary">${currentCard.age}</span></div>
+                            <div class="card-bio">${currentCard.bio}</div>
+                        </div>
+                        <span class="card-spark">Spark ${sparkScore}%</span>
+                    </div>
+                    <div class="card-actions">
+                        <button onclick="handleVote(${currentCard.id}, false)" class="btn btn-skip">✕ Pass</button>
+                        <button onclick="handleVote(${currentCard.id}, true)" class="btn btn-like">✨ Connect</button>
+                    </div>
+                </div>
+            </div>`;
+}
+
+window.handleVote = function(userId, liked) {
+    if (liked) {
+        state.likes.push(userId);
+        if (state.incoming.includes(userId) && !state.matches.includes(userId)) {
+            state.matches.push(userId);
+            const name = state.sampleProfiles.find(p => p.id === userId)?.name || 'someone';
+            alert(`🎉 It's a match! You and ${name} are now connected.`);
+        }
+    } else {
+        state.likes.push(userId);
+    }
+    saveStateToStorage();
+    renderDeck();
+    updateGlobalBadges();
+    renderChatsList();
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 18. CHATS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderChatsList() {
+    const container = document.getElementById('chats-list-target');
+    container.innerHTML = "";
+
+    if (state.matches.length === 0) {
+        container.innerHTML = `
+                <div class="text-center p-8 text-apple-secondary text-sm border-2 border-dashed border-apple rounded-2xl bg-apple-light dark:bg-[#1c1c1e]">
+                    No active connections yet. Match with someone to start chatting!
+                </div>`;
+        return;
+    }
+
+    state.matches.forEach(id => {
+        const profile = state.sampleProfiles.find(p => p.id === id);
+        if (!profile) return;
+        const div = document.createElement('div');
+        div.className =
+            "bg-apple-light dark:bg-[#1c1c1e] border border-apple hover:border-[#007AFF] rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all";
+        div.onclick = () => openChatModal(profile);
+        div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <img class="w-11 h-11 rounded-full object-cover border-2 border-[#007AFF]" src="${profile.photo}">
+                    <div>
+                        <h4 class="font-bold text-sm text-[#1c1c1e] dark:text-white">${profile.name}</h4>
+                        <p class="text-xs text-[#007AFF] font-medium">✨ Connected</p>
+                    </div>
+                </div>
+                <span class="text-apple-secondary text-xs font-medium">→</span>`;
+        container.appendChild(div);
+    });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 19. CHAT MODAL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openChatModal(profile) {
+    state.currentActiveChatUserId = profile.id;
+    const modal = document.getElementById('chat-modal');
+    document.getElementById('chat-header-avatar').src = profile.photo;
+    document.getElementById('chat-header-name').textContent = profile.name;
+
+    const box = document.getElementById('chat-messages-box');
+    box.innerHTML = `
+            <div class="text-center text-apple-secondary text-xs bg-apple-light dark:bg-[#1c1c1e] border border-apple rounded-xl p-3 max-w-xs mx-auto my-1 font-mono">
+                🔒 Secure connection established
+            </div>`;
+
+    if (state.chats[profile.id]) {
+        state.chats[profile.id].forEach(msg => {
+            appendChatMessage(msg.text, msg.sender === 'me');
         });
+    }
+    modal.style.display = 'flex';
+    box.scrollTop = box.scrollHeight;
+}
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 15. MAIN APP TABS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        window.switchTab = function(target) {
-            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            const tab = document.getElementById(`tab-${target}`);
-            if (tab) tab.style.display = 'flex';
+function appendChatMessage(text, isMe) {
+    const box = document.getElementById('chat-messages-box');
+    const div = document.createElement('div');
+    div.className = isMe ? 'bubble-me' : 'bubble-them';
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
 
-            ['nav-btn-match', 'nav-btn-chats', 'nav-btn-profile'].forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.classList.remove('active');
-                }
-            });
-            const activeBtn = document.getElementById(`nav-btn-${target}`);
-            if (activeBtn) {
-                activeBtn.classList.add('active');
-            }
+document.getElementById('btn-close-chat').onclick = function() {
+    document.getElementById('chat-modal').style.display = 'none';
+    state.currentActiveChatUserId = null;
+};
 
-            if (target === 'match') renderDeck();
-            if (target === 'profile') renderProfileTab();
-            if (target === 'chats') renderChatsList();
-        };
+document.getElementById('btn-send-message').onclick = sendChatMessage;
+document.getElementById('chat-input-field').onkeydown = function(e) {
+    if (e.key === 'Enter') sendChatMessage();
+};
 
-        document.getElementById('nav-btn-match').onclick = () => switchTab('match');
-        document.getElementById('nav-btn-chats').onclick = () => switchTab('chats');
-        document.getElementById('nav-btn-profile').onclick = () => switchTab('profile');
+function sendChatMessage() {
+    const input = document.getElementById('chat-input-field');
+    const text = input.value.trim();
+    const targetId = state.currentActiveChatUserId;
+    if (!text || !targetId) return;
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 16. MATCH DECK
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderDeck() {
-            const wrapper = document.getElementById('deck-wrapper');
-            const available = state.sampleProfiles.filter(p => !state.likes.includes(p.id));
+    if (!state.chats[targetId]) state.chats[targetId] = [];
+    state.chats[targetId].push({ sender: 'me', text });
+    appendChatMessage(text, true);
+    input.value = '';
+    saveStateToStorage();
 
-            if (available.length === 0) {
-                wrapper.innerHTML = `
-                        <div class="text-center text-apple-secondary p-8 border-2 border-dashed border-apple rounded-3xl bg-apple-light dark:bg-[#1c1c1e] w-full max-w-sm">
-                            <span class="text-4xl block mb-2">🌍</span>
-                            <p class="font-bold text-sm text-[#1c1c1e] dark:text-white">No new profiles</p>
-                            <p class="text-xs text-apple-secondary mt-1">Check back later for new matches!</p>
-                        </div>`;
-                return;
-            }
-
-            const currentCard = available[0];
-            const sparkScore = calculateSparkScore(state.userProfile, currentCard);
-
-            wrapper.innerHTML = `
-                    <div class="match-card animate-scale-up">
-                        <img src="${currentCard.photo}" class="card-image" alt="">
-                        <div class="card-body">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <div class="card-name">${currentCard.name}, <span class="font-normal text-apple-secondary">${currentCard.age}</span></div>
-                                    <div class="card-bio">${currentCard.bio}</div>
-                                </div>
-                                <span class="card-spark">Spark ${sparkScore}%</span>
-                            </div>
-                            <div class="card-actions">
-                                <button onclick="handleVote(${currentCard.id}, false)" class="btn btn-skip">✕ Pass</button>
-                                <button onclick="handleVote(${currentCard.id}, true)" class="btn btn-like">✨ Connect</button>
-                            </div>
-                        </div>
-                    </div>`;
-        }
-
-        window.handleVote = function(userId, liked) {
-            if (liked) {
-                state.likes.push(userId);
-                if (state.incoming.includes(userId) && !state.matches.includes(userId)) {
-                    state.matches.push(userId);
-                    const name = state.sampleProfiles.find(p => p.id === userId)?.name || 'someone';
-                    alert(`🎉 It's a match! You and ${name} are now connected.`);
-                }
-            } else {
-                state.likes.push(userId);
-            }
+    setTimeout(() => {
+        if (state.currentActiveChatUserId === targetId) {
+            const replies = [
+                "That's awesome! Tell me more.",
+                "I totally vibe with that!",
+                "Love your energy! Let's connect more.",
+                "Interesting! I've been meaning to try that.",
+                "You're speaking my language! Keep going."
+            ];
+            const reply = replies[Math.floor(Math.random() * replies.length)];
+            state.chats[targetId].push({ sender: 'them', text: reply });
+            appendChatMessage(reply, false);
             saveStateToStorage();
-            renderDeck();
-            updateGlobalBadges();
-            renderChatsList();
-        };
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 17. CHATS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderChatsList() {
-            const container = document.getElementById('chats-list-target');
-            container.innerHTML = "";
-
-            if (state.matches.length === 0) {
-                container.innerHTML = `
-                        <div class="text-center p-8 text-apple-secondary text-sm border-2 border-dashed border-apple rounded-2xl bg-apple-light dark:bg-[#1c1c1e]">
-                            No active connections yet. Match with someone to start chatting!
-                        </div>`;
-                return;
-            }
-
-            state.matches.forEach(id => {
-                const profile = state.sampleProfiles.find(p => p.id === id);
-                if (!profile) return;
-                const div = document.createElement('div');
-                div.className =
-                    "bg-apple-light dark:bg-[#1c1c1e] border border-apple hover:border-[#007AFF] rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all";
-                div.onclick = () => openChatModal(profile);
-                div.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <img class="w-11 h-11 rounded-full object-cover border-2 border-[#007AFF]" src="${profile.photo}">
-                            <div>
-                                <h4 class="font-bold text-sm text-[#1c1c1e] dark:text-white">${profile.name}</h4>
-                                <p class="text-xs text-[#007AFF] font-medium">✨ Connected</p>
-                            </div>
-                        </div>
-                        <span class="text-apple-secondary text-xs font-medium">→</span>`;
-                container.appendChild(div);
-            });
         }
+    }, 1200);
+}
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 18. CHAT MODAL
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function openChatModal(profile) {
-            state.currentActiveChatUserId = profile.id;
-            const modal = document.getElementById('chat-modal');
-            document.getElementById('chat-header-avatar').src = profile.photo;
-            document.getElementById('chat-header-name').textContent = profile.name;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 20. PROFILE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderProfileTab() {
+    const u = state.userProfile;
+    document.getElementById('my-profile-name').textContent = u.name || 'No name set';
+    document.getElementById('my-profile-handle').textContent = u.username ? `@${u.username}` : '@username';
+    document.getElementById('my-profile-age').textContent = u.age ? `${u.age}` : 'Age not set';
+    document.getElementById('my-profile-loc').textContent = u.location || 'Location not set';
+    document.getElementById('my-profile-bio').textContent = u.bio ? `"${u.bio}"` : 'No bio yet.';
+    document.getElementById('my-profile-pic').src = u.photo ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
+}
 
-            const box = document.getElementById('chat-messages-box');
-            box.innerHTML = `
-                    <div class="text-center text-apple-secondary text-xs bg-apple-light dark:bg-[#1c1c1e] border border-apple rounded-xl p-3 max-w-xs mx-auto my-1 font-mono">
-                        🔒 Secure connection established
-                    </div>`;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 21. BADGES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateGlobalBadges() {
+    const incomingCount = state.incoming.filter(id => !state.likes.includes(id)).length;
+    const badge = document.getElementById('badge-incoming-count');
+    if (incomingCount > 0) {
+        badge.textContent = incomingCount;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
 
-            if (state.chats[profile.id]) {
-                state.chats[profile.id].forEach(msg => {
-                    appendChatMessage(msg.text, msg.sender === 'me');
-                });
-            }
-            modal.style.display = 'flex';
-            box.scrollTop = box.scrollHeight;
-        }
+    const chatCount = state.matches.length;
+    const chatBadge = document.getElementById('chat-count');
+    if (chatCount > 0) {
+        chatBadge.textContent = chatCount;
+        chatBadge.classList.remove('hidden');
+    } else {
+        chatBadge.classList.add('hidden');
+    }
+}
 
-        function appendChatMessage(text, isMe) {
-            const box = document.getElementById('chat-messages-box');
-            const div = document.createElement('div');
-            div.className = isMe ? 'bubble-me' : 'bubble-them';
-            div.textContent = text;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        document.getElementById('btn-close-chat').onclick = function() {
-            document.getElementById('chat-modal').style.display = 'none';
-            state.currentActiveChatUserId = null;
-        };
-
-        document.getElementById('btn-send-message').onclick = sendChatMessage;
-        document.getElementById('chat-input-field').onkeydown = function(e) {
-            if (e.key === 'Enter') sendChatMessage();
-        };
-
-        function sendChatMessage() {
-            const input = document.getElementById('chat-input-field');
-            const text = input.value.trim();
-            const targetId = state.currentActiveChatUserId;
-            if (!text || !targetId) return;
-
-            if (!state.chats[targetId]) state.chats[targetId] = [];
-            state.chats[targetId].push({ sender: 'me', text });
-            appendChatMessage(text, true);
-            input.value = '';
-            saveStateToStorage();
-
-            setTimeout(() => {
-                if (state.currentActiveChatUserId === targetId) {
-                    const replies = [
-                        "That's awesome! Tell me more.",
-                        "I totally vibe with that!",
-                        "Love your energy! Let's connect more.",
-                        "Interesting! I've been meaning to try that.",
-                        "You're speaking my language! Keep going."
-                    ];
-                    const reply = replies[Math.floor(Math.random() * replies.length)];
-                    state.chats[targetId].push({ sender: 'them', text: reply });
-                    appendChatMessage(reply, false);
-                    saveStateToStorage();
-                }
-            }, 1200);
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 19. PROFILE
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function renderProfileTab() {
-            const u = state.userProfile;
-            document.getElementById('my-profile-name').textContent = u.name || 'No name set';
-            document.getElementById('my-profile-handle').textContent = u.username ? `@${u.username}` : '@username';
-            document.getElementById('my-profile-age').textContent = u.age ? `${u.age}` : 'Age not set';
-            document.getElementById('my-profile-loc').textContent = u.location || 'Location not set';
-            document.getElementById('my-profile-bio').textContent = u.bio ? `"${u.bio}"` : 'No bio yet.';
-            document.getElementById('my-profile-pic').src = u.photo ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 20. BADGES
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function updateGlobalBadges() {
-            const incomingCount = state.incoming.filter(id => !state.likes.includes(id)).length;
-            const badge = document.getElementById('badge-incoming-count');
-            if (incomingCount > 0) {
-                badge.textContent = incomingCount;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-
-            const chatCount = state.matches.length;
-            const chatBadge = document.getElementById('chat-count');
-            if (chatCount > 0) {
-                chatBadge.textContent = chatCount;
-                chatBadge.classList.remove('hidden');
-            } else {
-                chatBadge.classList.add('hidden');
-            }
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 21. LAUNCH
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set initial theme
-            const saved = localStorage.getItem('spark_app_state_2026');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.darkMode) {
-                        document.body.classList.add('dark-mode');
-                        document.body.classList.remove('light-mode');
-                    } else {
-                        document.body.classList.add('light-mode');
-                        document.body.classList.remove('dark-mode');
-                    }
-                } catch (e) { /* fall through */ }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 22. LAUNCH
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial theme
+    const saved = localStorage.getItem('spark_app_state_2026');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (parsed.darkMode) {
+                document.body.classList.add('dark-mode');
+                document.body.classList.remove('light-mode');
             } else {
                 document.body.classList.add('light-mode');
+                document.body.classList.remove('dark-mode');
             }
+        } catch (e) { /* fall through */ }
+    } else {
+        document.body.classList.add('light-mode');
+    }
 
-            // Init app
-            initApp();
-        });
+    // Init app
+    initApp();
+});
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 22. CLEANUP
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // Close modal on overlay click
-        document.getElementById('lang-modal')?.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeLanguageSettings();
-            }
-        });
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 23. CLEANUP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Close modal on overlay click
+document.getElementById('lang-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeLanguageSettings();
+    }
+});
 
-        // Close chat modal on back button (Telegram)
-        document.addEventListener('backbutton', function() {
-            if (document.getElementById('chat-modal').style.display === 'flex') {
-                document.getElementById('chat-modal').style.display = 'none';
-                state.currentActiveChatUserId = null;
-            }
-        });
+// Close chat modal on back button (Telegram)
+document.addEventListener('backbutton', function() {
+    if (document.getElementById('chat-modal').style.display === 'flex') {
+        document.getElementById('chat-modal').style.display = 'none';
+        state.currentActiveChatUserId = null;
+    }
+});
 
-        console.log('✨ Spark App Loaded!');
-        console.log('👤 User:', state.userProfile.name || 'Not logged in');
-        console.log('🌐 Language:', state.language);
+console.log('✨ Spark App Loaded!');
+console.log('👤 User:', state.userProfile.name || 'Not logged in');
+console.log('🌐 Language:', state.language);
+console.log('📝 Onboarding Step:', state.onboardingStep);
     </script>
 </body>
 </html>

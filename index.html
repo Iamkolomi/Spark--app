@@ -1538,20 +1538,21 @@
             }
         };
 
-        document.getElementById('btn-onboard-back').onclick = function() {
-            const step = state.onboardingStep;
-            if (step === 9 && subQuestionIndex > 0) {
-                subQuestionIndex--;
-                state.subQuestionIndex = subQuestionIndex;
-                saveStateToStorage();
-                renderOnboardingStep();
-                return;
-            }
-            if (step > 1) {
-                state.onboardingStep--;
-                saveStateToStorage();
-                renderOnboardingStep();
-            }
+       document.getElementById('btn-onboard-back').onclick = function() {
+    const step = state.onboardingStep;
+    if (step === 9 && subQuestionIndex > 0) {
+        subQuestionIndex--;
+        state.subQuestionIndex = subQuestionIndex;
+        saveStateToStorage();
+        renderOnboardingStep();
+        return;
+    }
+    if (step > 1) {
+        state.onboardingStep--;
+        saveStateToStorage();
+        renderOnboardingStep();
+    }
+};
         };
 
         // ─── Bio Counter ───

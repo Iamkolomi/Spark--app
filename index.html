@@ -1,1041 +1,491 @@
-```react
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  User, MessageCircle, Flame, Check, X, ChevronRight, ChevronLeft, 
-  Camera, Settings, Heart, Send, ArrowLeft, Info, Sparkles, Upload
-} from 'lucide-react';
-
-// ==========================================
-// 1. DATA: QUESTIONNAIRE
-// ==========================================
-const AB_QUESTIONS = [
-  ['Night owl', 'Early bird'],
-  ['Recharges in groups', 'Recharges alone'],
-  ['Spontaneous', 'Meticulous'],
-  ['Deep conversations', 'Light banter'],
-  ['Outdoorsy', 'Indoorsy'],
-  ['Try new foods', 'Comfort food'],
-  ['Creative', 'Logical'],
-  ['Big parties', 'Small hangs'],
-  ['Direct/blunt', 'Gentle/diplomatic'],
-  ['Frequent texter', 'Prefers calls'],
-  ['1-on-1 hangs', 'Group hangs'],
-  ['Strictly punctual', 'Go-with-the-flow'],
-  ['Big-picture thinker', 'Detail-oriented'],
-  ['Open about feelings', 'Processes alone'],
-  ['Dry/sarcastic humor', 'Warm/silly humor']
-];
-
-const LIST_QUESTIONS = [
-  { 
-    title: "What hangouts excite you?", 
-    options: ['Nature', 'Eating out', 'Nightlife', 'Cultural', 'Active sports', 'Cozy indoor', 'Shopping', 'Creative', 'Festivals', 'Walking'] 
-  },
-  { 
-    title: "What do you talk about?", 
-    options: ['Life struggles', 'Relationships', 'Career', 'Pop culture', 'Deep philosophy', 'Politics', 'Sports', 'Travel', 'Random nonsense', 'Shared hobbies'] 
-  },
-  { 
-    title: "What's your communication style?", 
-    options: ['Voice notes', 'Short texts', 'Phone calls', 'Video calls', 'Meme sharing', 'In-person only', 'Group chats', 'One-on-one DMs', 'Links', 'Weekly check-ins'] 
-  },
-  { 
-    title: "What's your conflict style?", 
-    options: ['Address immediately', 'Take space', 'Use humor', 'Prefer text', 'Avoid unless dealbreaker', 'Apologize quickly', 'Stand ground', 'Ask third friend', 'Write thoughts', 'Let small things go'] 
-  },
-  { 
-    title: "What makes you feel seen?", 
-    options: ['Remember details', 'Initiate plans', 'Check in', 'Give honest feedback', 'Celebrate wins', 'Reliable', 'Make me laugh', 'Vulnerable', 'Respect boundaries', 'Include me'] 
-  }
-];
-
-// ==========================================
-// 2. MOCK DATA (In-Memory Database)
-// ==========================================
-const generateMockAnswers = () => ({
-  ab: Array.from({ length: 15 }, () => Math.floor(Math.random() * 2)),
-  list: Array.from({ length: 5 }, () => {
-    const selected = [];
-    while(selected.length < Math.floor(Math.random() * 3) + 2) {
-      const rnd = Math.floor(Math.random() * 10);
-      if(!selected.includes(rnd)) selected.push(rnd);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=yes">
+  <title>Spark ✦ Friend Match</title>
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
-    return selected;
-  })
-});
 
-const MOCK_USERS = [
-  { id: 'u1', name: 'Elena', username: 'elenax', age: 24, location: 'New York, USA', bio: 'Looking for someone to explore hidden coffee shops with. I make a great friend because I actually listen and will always hype you up!', photo: 'https://i.pravatar.cc/300?img=47', answers: generateMockAnswers() },
-  { id: 'u2', name: 'Marcus', username: 'marcus_tech', age: 27, location: 'London, UK', bio: 'Tech nerd by day, amateur chef by night. Will cook you pasta if you listen to me rant about movies and games. Always down for late night drives.', photo: 'https://i.pravatar.cc/300?img=11', answers: generateMockAnswers() },
-  { id: 'u3', name: 'Sophia', username: 'sophia_art', age: 22, location: 'Paris, FR', bio: 'Art student. Let\'s go to museums and complain about contemporary art together. I promise to take great photos for your Instagram!', photo: 'https://i.pravatar.cc/300?img=5', answers: generateMockAnswers() },
-  { id: 'u4', name: 'Liam', username: 'liam_hikes', age: 29, location: 'Toronto, CA', bio: 'I talk too much about my dog, but he is very cute. Looking for hiking buddies who don\'t mind getting a little muddy on the trails.', photo: 'https://i.pravatar.cc/300?img=12', answers: generateMockAnswers() },
-  { id: 'u5', name: 'Zoe', username: 'zoe_reads', age: 25, location: 'Berlin, DE', bio: 'Bookworm and coffee addict. I am a fiercely loyal friend who will always remember your birthday and bring you soup when you are sick.', photo: 'https://i.pravatar.cc/300?img=9', answers: generateMockAnswers() }
-];
+    :root {
+      --blue: #0A84FF;
+      --blue-light: #64B5FF;
+      --blue-dark: #0055CC;
+      --gold: #F59E0B;
+      --gold-bright: #FBBF24;
+      --light-bg: #F5F5F7;
+      --light-surface: #FFFFFF;
+      --light-text: #1D1D1F;
+      --light-secondary: #86868B;
+      --dark-bg: #000000;
+      --dark-surface: #1C1C1E;
+      --dark-text: #F5F5F7;
+      --dark-secondary: #A1A1A6;
+      --radius: 20px;
+      --shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
 
-// ==========================================
-// 3. ALGORITHM: SPARK SCORE
-// ==========================================
-const calculateSparkScore = (userA, userB) => {
-  if (!userA || !userB || !userA.answers || !userB.answers) {
-    return { total: 0, abScore: 0, listScore: 0, sharedAB: 0, sharedInterests: [] };
-  }
-  
-  // A/B Match Score
-  let sharedAB = 0;
-  for (let i = 0; i < 15; i++) {
-    if (userA.answers.ab[i] === userB.answers.ab[i]) sharedAB++;
-  }
-  const abScore = (sharedAB / 15) * 100;
+    body {
+      background: var(--light-bg);
+      color: var(--light-text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+      padding: 10px;
+    }
 
-  // List Match Score (Jaccard Similarity Index per question)
-  let listPercentages = [];
-  let sharedInterests = [];
-  
-  for (let i = 0; i < 5; i++) {
-    const listA = userA.answers.list[i] || [];
-    const listB = userB.answers.list[i] || [];
-    const intersection = listA.filter(x => listB.includes(x));
-    const union = [...new Set([...listA, ...listB])];
+    body.dark {
+      background: var(--dark-bg);
+      color: var(--dark-text);
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 400px;
+      height: 95vh;
+      max-height: 850px;
+      background: var(--light-surface);
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 50px rgba(0,0,0,0.15);
+      position: relative;
+      transition: background 0.3s;
+    }
+
+    body.dark .app-container {
+      background: var(--dark-surface);
+    }
+
+    /* Screens & tabs container */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      padding: 20px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .screen::-webkit-scrollbar { display: none; }
+    .screen.active { display: flex; }
+
+    /* Onboarding specific */
+    .onboarding-slide {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+      animation: fadeSlide 0.3s ease;
+    }
+    .onboarding-slide.active { display: flex; }
     
-    // Collect human-readable shared tags for the UI
-    intersection.forEach(idx => {
-      if(sharedInterests.length < 5) {
-        sharedInterests.push(LIST_QUESTIONS[i].options[idx]);
+    @keyframes fadeSlide {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .btn {
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 17px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(10,132,255,0.3);
+      margin-top: 16px;
+      width: 100%;
+    }
+    .btn:active { transform: scale(0.96); opacity: 0.9; }
+    .btn.secondary {
+      background: transparent;
+      color: var(--blue);
+      box-shadow: none;
+      border: 1px solid var(--blue);
+    }
+    body.dark .btn.secondary { color: var(--blue-light); border-color: var(--blue-light); }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid #E5E5EA;
+      background: var(--light-bg);
+      font-size: 16px;
+      margin-top: 10px;
+      outline: none;
+      transition: 0.2s;
+    }
+    body.dark input, body.dark select, body.dark textarea {
+      background: #2C2C2E;
+      border-color: #3A3A3C;
+      color: white;
+    }
+    input:focus, textarea:focus { border-color: var(--blue); }
+
+    .profile-img {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #E5E5EA;
+      margin: 10px auto;
+      border: 3px solid var(--blue);
+    }
+
+    .tab-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0,0,0,0.05);
+      transition: 0.3s;
+    }
+    body.dark .tab-bar {
+      background: rgba(28,28,30,0.8);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--light-secondary);
+      cursor: pointer;
+      transition: 0.2s;
+      position: relative;
+    }
+    .tab-item.active { color: var(--blue); }
+    .badge {
+      position: absolute;
+      top: -6px;
+      right: -10px;
+      background: #FF3B30;
+      color: white;
+      border-radius: 10px;
+      font-size: 10px;
+      padding: 2px 6px;
+      font-weight: bold;
+    }
+
+    /* Card styles */
+    .match-card {
+      background: var(--light-surface);
+      border-radius: 32px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0;
+      transition: 0.2s;
+    }
+    body.dark .match-card { background: #2C2C2E; }
+
+    .spark-score {
+      font-weight: 700;
+      font-size: 24px;
+      color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+<div class="app-container" id="appContainer">
+  <!-- Onboarding Screen -->
+  <div id="onboardingScreen" class="screen active"></div>
+
+  <!-- Main Tabs (Match, Chats, Profile) -->
+  <div id="mainScreen" class="screen" style="padding: 0; display: none;">
+    <div style="flex:1; overflow-y: auto; padding: 20px;" id="tabContent"></div>
+    <div class="tab-bar">
+      <div class="tab-item" data-tab="profile"><span>👤</span><span>Profile</span><span class="badge" id="profileBadge" style="display:none;">0</span></div>
+      <div class="tab-item active" data-tab="match"><span>✨</span><span>Match</span></div>
+      <div class="tab-item" data-tab="chats"><span>💬</span><span>Chats</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ----------------------------------- STATE -----------------------------------
+    const tg = window.Telegram?.WebApp;
+    let currentUser = null;
+    let users = []; // mock profiles
+    let currentMatchIndex = 0;
+    let friendRequests = []; // incoming to current user
+    let outgoingRequests = [];
+    let chats = [];
+    let activeTab = 'match';
+
+    // Onboarding state
+    let onboardingStep = 0;
+    let onboardingData = {
+      displayName: '', username: '', photo: '', age: '', gender: '', lookingFor: '', city: '', country: '', bio: '',
+      answers: [] // array of 20 answers
+    };
+
+    // Mock profiles for matching
+    function generateMockUsers() {
+      return [
+        { id: 'u1', displayName: 'Alex Rivera', username: 'alex_r', photo: 'https://i.pravatar.cc/150?img=11', age: 26, gender: 'Male', city: 'Barcelona', country: 'Spain', bio: 'Love exploring cities and deep talks.', answers: generateRandomAnswers() },
+        { id: 'u2', displayName: 'Jamie Lee', username: 'jamielee', photo: 'https://i.pravatar.cc/150?img=5', age: 24, gender: 'Female', city: 'Seoul', country: 'South Korea', bio: 'Coffee addict and meme lover.', answers: generateRandomAnswers() },
+        { id: 'u3', displayName: 'Taylor Chen', username: 'taychen', photo: 'https://i.pravatar.cc/150?img=12', age: 28, gender: 'Non-binary', city: 'Toronto', country: 'Canada', bio: 'Creative soul into art and hiking.', answers: generateRandomAnswers() },
+      ];
+    }
+
+    function generateRandomAnswers() {
+      let a = [];
+      for(let i=0; i<15; i++) a.push(Math.random()>0.5 ? 'A' : 'B');
+      const lists = [
+        ['Nature','Eating out','Nightlife'], ['Life struggles','Pop culture'], ['Voice notes','Meme sharing'], ['Use humor','Address immediately'], ['Remember details','Check in']
+      ];
+      lists.forEach(l => a.push(l));
+      return a;
+    }
+
+    // ----------------------------------- UTILS -----------------------------------
+    function calculateSpark(myAnswers, otherAnswers) {
+      let abMatch = 0;
+      for(let i=0; i<15; i++) if(myAnswers[i] === otherAnswers[i]) abMatch++;
+      const abScore = (abMatch/15)*100;
+      
+      let listSum = 0;
+      for(let i=15; i<20; i++) {
+        const mySet = new Set(myAnswers[i] || []);
+        const otherSet = new Set(otherAnswers[i] || []);
+        if(mySet.size===0 || otherSet.size===0) { listSum+=0; continue; }
+        let overlap = [...mySet].filter(x=>otherSet.has(x)).length;
+        listSum += (overlap / Math.max(mySet.size, otherSet.size)) * 100;
       }
+      const listScore = listSum/5;
+      return Math.round((abScore*0.5)+(listScore*0.5));
+    }
+
+    function renderSparkBreakdown(myAns, otherAns) {
+      let abMatch=0; for(let i=0;i<15;i++) if(myAns[i]===otherAns[i]) abMatch++;
+      return `<b>${abMatch}/15 same choices</b><br>✨ Shared vibes & interests.`;
+    }
+
+    // ----------------------------------- UI RENDER -----------------------------------
+    const appContainer = document.getElementById('appContainer');
+    const onboardingScreen = document.getElementById('onboardingScreen');
+    const mainScreen = document.getElementById('mainScreen');
+    const tabContent = document.getElementById('tabContent');
+    const profileBadge = document.getElementById('profileBadge');
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function updateBadges() {
+      const incoming = friendRequests.filter(r=>r.status==='pending').length;
+      if(profileBadge) {
+        profileBadge.style.display = incoming>0 ? 'block':'none';
+        profileBadge.textContent = incoming;
+      }
+    }
+
+    function renderOnboarding() {
+      const steps = [
+        () => `<div class="onboarding-slide active"><h1>✨ Find your Spark</h1><p style="margin:20px;color:gray;">Answer 20 fun questions to discover friends who truly get you.</p><button class="btn" onclick="nextOnboarding()">Get Started</button></div>`,
+        () => `<div class="onboarding-slide active"><label>Display Name</label><input id="dispName" value="${onboardingData.displayName}" placeholder="Your name"></div>`,
+        () => `<div class="onboarding-slide active"><label>Username</label><input id="username" value="${onboardingData.username}" placeholder="@username"></div>`,
+        () => `<div class="onboarding-slide active"><label>Profile Photo</label><img class="profile-img" src="${onboardingData.photo || 'https://i.pravatar.cc/150?u=default'}" id="profilePreview"><input type="file" accept="image/*" id="photoInput" style="display:none"><button class="btn secondary" onclick="document.getElementById('photoInput').click()">Upload Photo</button></div>`,
+        () => `<div class="onboarding-slide active"><label>Age</label><input type="number" id="age" value="${onboardingData.age}" min="13" max="99"></div>`,
+        () => `<div class="onboarding-slide active"><label>Gender</label><select id="gender">${['Male','Female','Non-binary','Prefer not to say'].map(g=>`<option ${onboardingData.gender===g?'selected':''}>${g}</option>`)}</select></div>`,
+        () => `<div class="onboarding-slide active"><label>Looking for</label><select id="lookingFor">${['Male','Female','Non-binary','Anyone'].map(g=>`<option ${onboardingData.lookingFor===g?'selected':''}>${g}</option>`)}</select></div>`,
+        () => `<div class="onboarding-slide active"><label>City</label><input id="city" value="${onboardingData.city}"><label>Country</label><input id="country" value="${onboardingData.country}"></div>`,
+        () => renderQuestionnaireSlide(),
+        () => `<div class="onboarding-slide active"><label>Bio (150-300 chars)</label><textarea id="bio" maxlength="300">${onboardingData.bio}</textarea></div>`,
+        () => `<div class="onboarding-slide active"><h2>🎉 You're all set!</h2><p>Start matching now.</p><button class="btn" onclick="finishOnboarding()">Enter Spark</button></div>`
+      ];
+      onboardingScreen.innerHTML = steps[onboardingStep]();
+      if(onboardingStep===3) {
+        document.getElementById('photoInput')?.addEventListener('change', (e)=> {
+          const file = e.target.files[0];
+          if(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { onboardingData.photo = ev.target.result; document.getElementById('profilePreview').src = ev.target.result; };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+    }
+
+    function renderQuestionnaireSlide() {
+      const qIndex = onboardingData.answers.length;
+      if(qIndex >= 20) return '';
+      if(qIndex < 15) {
+        const questions = [
+          ['🌙 Night owl','☀️ Early bird'],['🎉 Recharges in groups','🧘 Recharges alone'],['🎲 Spontaneous','📋 Meticulous'],
+          ['🧠 Deep conversations','😄 Light banter'],['🌲 Outdoorsy','🛋️ Indoorsy'],['🍜 Try new foods','🍕 Comfort food'],
+          ['🎨 Creative','📊 Logical'],['🎊 Big parties','🕯️ Small hangs'],['🗣️ Direct/blunt','🤝 Gentle/diplomatic'],
+          ['📱 Frequent texter','📞 Prefers calls'],['👤 1-on-1 hangs','👥 Group hangs'],['⏰ Strictly punctual','🌊 Go-with-the-flow'],
+          ['🌌 Big-picture thinker','🔍 Detail-oriented doer'],['💬 Open about feelings','🔒 Processes alone'],['😏 Dry/sarcastic humor','🥰 Warm/silly humor']
+        ];
+        return `<div class="onboarding-slide active"><h3>Q${qIndex+1}/20</h3><p>${questions[qIndex][0]} vs ${questions[qIndex][1]}</p>
+        <button class="btn" onclick="answerQuestion('A')">${questions[qIndex][0]}</button>
+        <button class="btn secondary" onclick="answerQuestion('B')">${questions[qIndex][1]}</button></div>`;
+      } else {
+        const listQs = [
+          {q:'What hangouts excite you?', opts:['Nature','Eating out','Nightlife','Cultural','Active sports','Cozy indoor','Shopping','Creative','Festivals','Walking']},
+          {q:'What do you talk about?', opts:['Life struggles','Relationships','Career','Pop culture','Deep philosophy','Politics','Sports','Travel','Random nonsense','Shared hobbies']},
+          {q:'How do you prefer to communicate?', opts:['Voice notes','Short texts','Phone calls','Video calls','Meme sharing','In-person only','Group chats','One-on-one DMs','Links','Weekly check-ins']},
+          {q:'Conflict style?', opts:['Address immediately','Take space','Use humor','Prefer text','Avoid unless dealbreaker','Apologize quickly','Stand ground','Ask third friend','Write thoughts','Let small things go']},
+          {q:'What makes you feel seen?', opts:['Remember details','Initiate plans','Check in','Give honest feedback','Celebrate wins','Reliable','Make me laugh','Vulnerable','Respect boundaries','Include me']}
+        ];
+        const current = listQs[qIndex-15];
+        return `<div class="onboarding-slide active"><h3>${current.q}</h3><div id="listOptions">${current.opts.map(o=>`<label style="display:block;margin:6px;"><input type="checkbox" value="${o}"> ${o}</label>`).join('')}</div><button class="btn" onclick="submitListAnswer()">Next</button></div>`;
+      }
+    }
+
+    window.answerQuestion = function(ans) {
+      onboardingData.answers.push(ans);
+      onboardingStep++;
+      renderOnboarding();
+    };
+    window.submitListAnswer = function() {
+      const checks = [...document.querySelectorAll('#listOptions input:checked')].map(c=>c.value);
+      if(checks.length===0) { alert('Select at least one'); return; }
+      onboardingData.answers.push(checks);
+      onboardingStep++;
+      renderOnboarding();
+    };
+    window.nextOnboarding = function() {
+      const fields = ['dispName','username','age','gender','lookingFor','city','country','bio'];
+      if(onboardingStep===1) onboardingData.displayName = document.getElementById('dispName')?.value || '';
+      if(onboardingStep===2) onboardingData.username = document.getElementById('username')?.value || '';
+      if(onboardingStep===4) onboardingData.age = document.getElementById('age')?.value;
+      if(onboardingStep===5) onboardingData.gender = document.getElementById('gender')?.value;
+      if(onboardingStep===6) onboardingData.lookingFor = document.getElementById('lookingFor')?.value;
+      if(onboardingStep===7) { onboardingData.city = document.getElementById('city')?.value; onboardingData.country = document.getElementById('country')?.value; }
+      if(onboardingStep===9) onboardingData.bio = document.getElementById('bio')?.value;
+      if(onboardingStep===8) return; // handled by question buttons
+      onboardingStep++;
+      renderOnboarding();
+    };
+    window.finishOnboarding = function() {
+      currentUser = {
+        id: 'me',
+        ...onboardingData,
+        photo: onboardingData.photo || 'https://i.pravatar.cc/150?u=me',
+      };
+      users = generateMockUsers();
+      showScreen('mainScreen');
+      renderTab('match');
+      updateBadges();
+    };
+
+    // Tabs
+    function renderTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab-item[data-tab=${tab}]`)?.classList.add('active');
+      if(tab==='match') renderMatchTab();
+      else if(tab==='chats') renderChatsTab();
+      else if(tab==='profile') renderProfileTab();
+    }
+
+    function renderMatchTab() {
+      if(!currentUser) return;
+      const otherUsers = users.filter(u=>u.id!==currentUser.id);
+      if(otherUsers.length===0) { tabContent.innerHTML='<p>No profiles nearby.</p>'; return; }
+      const profile = otherUsers[currentMatchIndex % otherUsers.length];
+      const spark = calculateSpark(currentUser.answers, profile.answers);
+      const shared = spark>70 ? 'Music, Coffee' : 'Outdoors';
+      tabContent.innerHTML = `
+        <div class="match-card">
+          <img src="${profile.photo}" width="100" height="100" style="border-radius:50%;">
+          <h2>${profile.displayName}, ${profile.age}</h2>
+          <p>${profile.city}, ${profile.country}</p>
+          <div class="spark-score" onclick="alert('${renderSparkBreakdown(currentUser.answers, profile.answers)}')">${spark}% Spark ✨</div>
+          <p>${profile.bio || ''}</p>
+          <div style="display:flex; gap:12px; width:100%; margin-top:10px;">
+            <button class="btn secondary" style="flex:1;" onclick="skipProfile()">❌ Skip</button>
+            <button class="btn" style="flex:1; background:#F59E0B;" onclick="sendLike('${profile.id}')">❤️ Like</button>
+          </div>
+        </div>`;
+    }
+    window.skipProfile = () => { currentMatchIndex++; renderMatchTab(); };
+    window.sendLike = (profileId) => {
+      const target = users.find(u=>u.id===profileId);
+      if(!target) return;
+      outgoingRequests.push({to: profileId, status:'pending'});
+      friendRequests.push({from: currentUser.id, to: profileId, status:'pending', user: currentUser});
+      alert('Friend request sent!');
+      currentMatchIndex++; renderMatchTab(); updateBadges();
+    };
+
+    function renderChatsTab() {
+      const mutual = chats.filter(c=>c.mutual);
+      tabContent.innerHTML = mutual.length ? mutual.map(c=>`<div class="match-card"><b>${c.with}</b><p>Spark ${c.spark}%</p></div>`).join('') : '<p>No chats yet. Match to start!</p>';
+    }
+
+    function renderProfileTab() {
+      if(!currentUser) return;
+      const incoming = friendRequests.filter(r=>r.to===currentUser.id && r.status==='pending');
+      tabContent.innerHTML = `
+        <div style="text-align:center;">
+          <img src="${currentUser.photo}" width="80" height="80" style="border-radius:50%;">
+          <h2>${currentUser.displayName}</h2><p>@${currentUser.username}</p>
+          <p>${currentUser.age}, ${currentUser.city}</p>
+        </div>
+        <h4>Incoming Requests</h4>
+        ${incoming.map(r=>`<div style="display:flex;justify-content:space-between;">${r.user?.displayName||'User'} <button onclick="acceptRequest('${r.from}')">Accept</button></div>`).join('')||'None'}
+      `;
+    }
+    window.acceptRequest = (fromId) => {
+      friendRequests = friendRequests.filter(r=>!(r.from===fromId && r.to===currentUser.id));
+      chats.push({with: users.find(u=>u.id===fromId)?.displayName, mutual:true, spark:85});
+      updateBadges(); renderProfileTab();
+    };
+
+    // Tab listeners
+    document.querySelectorAll('.tab-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const tab = item.dataset.tab;
+        renderTab(tab);
+      });
     });
 
-    const overlapScore = union.length === 0 ? 0 : (intersection.length / union.length) * 100;
-    listPercentages.push(overlapScore);
-  }
-  const listScore = listPercentages.reduce((a, b) => a + b, 0) / 5;
-
-  return {
-    total: Math.round((abScore + listScore) / 2),
-    abScore: Math.round(abScore),
-    listScore: Math.round(listScore),
-    sharedAB,
-    sharedInterests
-  };
-};
-
-// ==========================================
-// 4. SHARED UI COMPONENTS
-// ==========================================
-const AppleButton = ({ children, onClick, variant = 'primary', disabled = false, className = '' }) => {
-  const baseStyle = "w-full py-4 rounded-2xl font-bold text-[17px] transition-all duration-200 flex justify-center items-center gap-2";
-  const variants = {
-    primary: "bg-[#007AFF] text-white active:bg-blue-600 shadow-sm",
-    secondary: "bg-gray-100 text-gray-900 dark:bg-[#2C2C2E] dark:text-white active:bg-gray-200 dark:active:bg-gray-700",
-  };
-  
-  return (
-    <button 
-      disabled={disabled} 
-      onClick={onClick} 
-      className={`${baseStyle} ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'} ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
-
-const Input = ({ label, error, ...props }) => (
-  <div className="mb-5 w-full">
-    {label && <label className="block text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 ml-1">{label}</label>}
-    <input 
-      className={`w-full bg-gray-100 dark:bg-[#1C1C1E] text-gray-900 dark:text-white rounded-2xl px-5 py-4 text-[17px] focus:outline-none focus:ring-2 transition-all shadow-inner
-        ${error ? 'focus:ring-red-500 ring-1 ring-red-500' : 'focus:ring-[#007AFF]'}`}
-      {...props}
-    />
-    {error && <p className="text-red-500 text-xs mt-2 ml-2 font-medium">{error}</p>}
-  </div>
-);
-
-// ==========================================
-// 5. MAIN APP COMPONENT
-// ==========================================
-export default function App() {
-  const [theme, setTheme] = useState('light');
-  const [currentUser, setCurrentUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('match');
-  
-  // App State Memory
-  const [potentials, setPotentials] = useState([...MOCK_USERS]);
-  const [matches, setMatches] = useState([]);
-  const [incomingRequests, setIncomingRequests] = useState([MOCK_USERS[0], MOCK_USERS[1]]); // Start with a couple mocks
-  const [outgoingRequests, setOutgoingRequests] = useState([]);
-
-  // Setup Telegram Theme
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
+    // Init Telegram
+    if(tg) {
+      tg.ready();
       tg.expand();
-      setTheme(tg.colorScheme || 'light');
-      tg.onEvent('themeChanged', () => setTheme(tg.colorScheme || 'light'));
-    } else {
-      setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      onboardingData.displayName = tg.initDataUnsafe?.user?.first_name || '';
+      onboardingData.username = tg.initDataUnsafe?.user?.username || '';
+      if(tg.initDataUnsafe?.user?.photo_url) onboardingData.photo = tg.initDataUnsafe.user.photo_url;
+      document.body.classList.add(tg.colorScheme === 'dark' ? 'dark' : '');
     }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.className = theme;
-  }, [theme]);
-
-  // Actions
-  const handleLike = (user) => {
-    setPotentials(prev => prev.filter(u => u.id !== user.id));
-    setOutgoingRequests(prev => [...prev, user]);
-    
-    // Simulate instant match 20% of the time for testing
-    if (Math.random() > 0.8) {
-      setTimeout(() => {
-        setOutgoingRequests(prev => prev.filter(u => u.id !== user.id));
-        setMatches(prev => [...prev, user]);
-      }, 1000);
-    }
-  };
-
-  const handleSkip = (user) => {
-    setPotentials(prev => prev.filter(u => u.id !== user.id));
-  };
-
-  const handleAcceptRequest = (user) => {
-    setIncomingRequests(prev => prev.filter(u => u.id !== user.id));
-    setMatches(prev => [...prev, user]);
-  };
-
-  const handleDeclineRequest = (user) => {
-    setIncomingRequests(prev => prev.filter(u => u.id !== user.id));
-  };
-
-  const handleCancelRequest = (user) => {
-     setOutgoingRequests(prev => prev.filter(u => u.id !== user.id));
-  };
-
-  if (!currentUser) {
-    return <OnboardingFlow onComplete={setCurrentUser} />;
-  }
-
-  return (
-    <div className="fixed inset-0 bg-[#F2F2F7] dark:bg-black text-black dark:text-white overflow-hidden flex flex-col font-sans selection:bg-[#007AFF]/30">
-      
-      {/* Dynamic Header */}
-      <div className="pt-12 pb-2 px-6 flex justify-between items-center z-10 bg-[#F2F2F7]/80 dark:bg-black/80 backdrop-blur-md">
-        <h1 className="text-3xl font-extrabold tracking-tight">
-          {activeTab === 'profile' && 'Profile'}
-          {activeTab === 'match' && 'Spark'}
-          {activeTab === 'chats' && 'Chats'}
-        </h1>
-        {activeTab === 'profile' && <Settings size={24} className="text-[#007AFF] cursor-pointer" />}
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto pb-28 relative">
-        {activeTab === 'profile' && (
-          <ProfileTab 
-            user={currentUser} 
-            incoming={incomingRequests} 
-            outgoing={outgoingRequests}
-            onAccept={handleAcceptRequest}
-            onDecline={handleDeclineRequest}
-            onCancel={handleCancelRequest}
-          />
-        )}
-        {activeTab === 'match' && (
-          <MatchTab 
-            user={currentUser} 
-            potentials={potentials} 
-            onLike={handleLike} 
-            onSkip={handleSkip} 
-          />
-        )}
-        {activeTab === 'chats' && (
-          <ChatsTab 
-            user={currentUser} 
-            matches={matches} 
-          />
-        )}
-      </div>
-
-      {/* iOS Blurred Bottom Navigation Bar */}
-      <div className="absolute bottom-0 w-full h-24 bg-white/70 dark:bg-[#1C1C1E]/70 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 flex justify-around items-start pt-3 px-4 z-50">
-        <NavButton 
-          icon={<User size={26} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />} 
-          label="Profile" 
-          isActive={activeTab === 'profile'} 
-          onClick={() => setActiveTab('profile')} 
-          badge={incomingRequests.length}
-        />
-        
-        <div className="relative -top-6">
-          <button 
-            onClick={() => setActiveTab('match')}
-            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90 border-4 border-[#F2F2F7] dark:border-black
-              ${activeTab === 'match' ? 'bg-[#007AFF]' : 'bg-gray-300 dark:bg-gray-800'}`}
-          >
-            <Flame size={32} color="white" className={activeTab === 'match' ? 'animate-pulse' : ''} />
-          </button>
-        </div>
-
-        <NavButton 
-          icon={<MessageCircle size={26} strokeWidth={activeTab === 'chats' ? 2.5 : 2} />} 
-          label="Chats" 
-          isActive={activeTab === 'chats'} 
-          onClick={() => setActiveTab('chats')} 
-          badge={0}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// 6. BOTTOM NAVIGATION COMPONENT
-// ==========================================
-const NavButton = ({ icon, label, isActive, onClick, badge }) => (
-  <button onClick={onClick} className="relative flex flex-col items-center justify-center w-20">
-    <div className={`transition-colors duration-200 ${isActive ? 'text-[#007AFF]' : 'text-gray-400 dark:text-gray-500'}`}>
-      {icon}
-    </div>
-    <span className={`text-[11px] mt-1.5 font-medium transition-colors duration-200 ${isActive ? 'text-[#007AFF]' : 'text-gray-400 dark:text-gray-500'}`}>
-      {label}
-    </span>
-    {badge > 0 && (
-      <div className="absolute -top-1 right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-[#1C1C1E]">
-        {badge}
-      </div>
-    )}
-  </button>
-);
-
-// ==========================================
-// 7. TAB: MATCH (Center)
-// ==========================================
-const MatchTab = ({ user, potentials, onLike, onSkip }) => {
-  const [breakdownUser, setBreakdownUser] = useState(null);
-  const [animatingCard, setAnimatingCard] = useState(null);
-
-  if (potentials.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
-        <div className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-inner">
-          <Flame size={40} className="text-gray-400" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">You've caught up!</h2>
-        <p className="text-gray-500 text-[17px]">No more potential sparks nearby. Check back later.</p>
-      </div>
-    );
-  }
-
-  const currentProfile = potentials[0];
-  const sparkData = calculateSparkScore(user, currentProfile);
-  const isHighSpark = sparkData.total >= 90;
-
-  const handleAction = (type, profile) => {
-    setAnimatingCard(type);
-    setTimeout(() => {
-      type === 'like' ? onLike(profile) : onSkip(profile);
-      setAnimatingCard(null);
-    }, 300); // Wait for animation
-  };
-
-  const cardStyle = animatingCard === 'like' 
-    ? 'translate-x-full rotate-12 opacity-0' 
-    : animatingCard === 'skip' 
-      ? '-translate-x-full -rotate-12 opacity-0' 
-      : 'translate-x-0 rotate-0 opacity-100';
-
-  return (
-    <div className="h-full w-full flex flex-col items-center px-4 pt-2">
-      {/* Profile Card */}
-      <div className={`relative w-full max-w-[400px] h-[70vh] min-h-[500px] bg-white dark:bg-[#1C1C1E] rounded-[2.5rem] shadow-xl overflow-hidden flex flex-col transition-all duration-300 transform ${cardStyle}`}>
-        
-        {/* Photo Section */}
-        <div className="relative h-[55%] w-full bg-gray-200 dark:bg-gray-800">
-          <img src={currentProfile.photo} alt={currentProfile.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-          
-          {/* Spark Score Badge */}
-          <button 
-            onClick={() => setBreakdownUser({ profile: currentProfile, data: sparkData })}
-            className={`absolute top-4 right-4 px-4 py-2 rounded-full backdrop-blur-md flex items-center gap-2 shadow-lg transition-transform active:scale-95 border border-white/20
-              ${isHighSpark ? 'bg-[#FBBF24]/90 text-black' : 'bg-black/40 text-white'}`}
-          >
-            <Flame size={18} className={isHighSpark ? 'text-black' : 'text-[#F59E0B]'} />
-            <span className="font-bold tracking-tight">{sparkData.total}% Spark</span>
-          </button>
-        </div>
-
-        {/* Info Section */}
-        <div className="p-6 flex-1 flex flex-col">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h1 className="text-3xl font-extrabold flex items-center gap-2">
-                {currentProfile.name}, {currentProfile.age}
-              </h1>
-              <p className="text-gray-500 font-medium flex items-center gap-1 mt-1">
-                📍 {currentProfile.location}
-              </p>
-            </div>
-          </div>
-          
-          {/* Shared Interests Tags */}
-          {sparkData.sharedInterests.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3 mb-4">
-              {sparkData.sharedInterests.slice(0, 3).map((tag, i) => (
-                <span key={i} className="px-3 py-1.5 bg-blue-50 text-[#007AFF] dark:bg-[#007AFF]/10 dark:text-[#5E5CE6] rounded-full text-xs font-bold tracking-wide">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="text-gray-700 dark:text-gray-300 text-[15px] leading-relaxed overflow-y-auto flex-1 font-medium italic">
-            "{currentProfile.bio}"
-          </p>
-
-          {/* Action Buttons */}
-          <div className="flex justify-center items-center gap-6 mt-4 pb-2">
-            <button 
-              onClick={() => handleAction('skip', currentProfile)} 
-              className="w-16 h-16 rounded-full bg-white dark:bg-[#2C2C2E] text-red-500 flex items-center justify-center transition-transform active:scale-90 shadow-lg border border-gray-100 dark:border-gray-800"
-            >
-              <X size={30} strokeWidth={3} />
-            </button>
-            <button 
-              className="w-12 h-12 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#007AFF] flex items-center justify-center transition-transform active:scale-90 shadow-md"
-              onClick={() => alert('Message feature requires mutual match!')}
-            >
-              <MessageCircle size={22} strokeWidth={2.5} />
-            </button>
-            <button 
-              onClick={() => handleAction('like', currentProfile)} 
-              className="w-16 h-16 rounded-full bg-[#007AFF] text-white flex items-center justify-center transition-transform active:scale-90 shadow-lg hover:bg-blue-600 shadow-blue-500/30"
-            >
-              <Heart size={28} strokeWidth={3} fill="currentColor" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Breakdown Modal */}
-      <SparkBreakdownModal 
-        isOpen={!!breakdownUser} 
-        onClose={() => setBreakdownUser(null)} 
-        data={breakdownUser?.data} 
-        profile={breakdownUser?.profile}
-      />
-    </div>
-  );
-};
-
-const SparkBreakdownModal = ({ isOpen, onClose, data, profile }) => {
-  if (!isOpen || !data) return null;
-  const isHighSpark = data.total >= 90;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-      <div className="relative bg-[#F2F2F7] dark:bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-        <button onClick={onClose} className="absolute top-5 right-5 p-2 bg-gray-200 dark:bg-gray-800 rounded-full text-gray-500 active:scale-90">
-          <X size={20} strokeWidth={3} />
-        </button>
-        
-        <div className="flex flex-col items-center mb-8 mt-2">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 shadow-xl border-4 border-white dark:border-[#2C2C2E]
-            ${isHighSpark ? 'bg-gradient-to-br from-[#F59E0B] to-[#FBBF24]' : 'bg-gradient-to-br from-blue-500 to-blue-400'}`}>
-            <Flame size={40} color="white" fill="currentColor" />
-          </div>
-          <h3 className="text-3xl font-extrabold">{data.total}% Match</h3>
-          <p className="text-gray-500 font-medium">You & {profile?.name}</p>
-        </div>
-
-        <div className="space-y-6 bg-white dark:bg-[#2C2C2E] rounded-3xl p-5 shadow-sm">
-          {/* A/B Score */}
-          <div>
-            <div className="flex justify-between text-sm font-bold mb-2">
-              <span>Core Values</span>
-              <span className="text-[#007AFF]">{data.sharedAB}/15 Same</span>
-            </div>
-            <div className="w-full bg-gray-100 dark:bg-[#1C1C1E] rounded-full h-3.5 overflow-hidden shadow-inner">
-              <div className="bg-[#007AFF] h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${data.abScore}%` }}></div>
-            </div>
-          </div>
-
-          {/* List Score */}
-          <div>
-            <div className="flex justify-between text-sm font-bold mb-2">
-              <span>Interests Overlap</span>
-              <span className="text-purple-500">{data.listScore}% Match</span>
-            </div>
-            <div className="w-full bg-gray-100 dark:bg-[#1C1C1E] rounded-full h-3.5 overflow-hidden shadow-inner">
-              <div className="bg-purple-500 h-full rounded-full transition-all duration-1000 ease-out delay-300" style={{ width: `${data.listScore}%` }}></div>
-            </div>
-          </div>
-
-          {/* Highlights */}
-          {data.sharedInterests.length > 0 && (
-            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-              <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 block">You both selected</span>
-              <div className="flex flex-wrap gap-2">
-                {data.sharedInterests.map((t, i) => (
-                  <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-[#1C1C1E] rounded-xl text-[13px] font-bold text-gray-700 dark:text-gray-300">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <AppleButton onClick={onClose} className="mt-6">Got it</AppleButton>
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// 8. TAB: PROFILE (Left)
-// ==========================================
-const ProfileTab = ({ user, incoming, outgoing, onAccept, onDecline, onCancel }) => {
-  return (
-    <div className="h-full px-4 pt-4 pb-6 overflow-y-auto animate-in fade-in duration-300">
-      
-      {/* Header Info */}
-      <div className="bg-white dark:bg-[#1C1C1E] rounded-[2rem] p-6 shadow-sm mb-6 flex flex-col items-center text-center">
-        <div className="relative mb-4">
-          <img src={user.photo} alt="Profile" className="w-28 h-28 rounded-full object-cover shadow-lg border-4 border-white dark:border-[#2C2C2E]" />
-          <button className="absolute bottom-0 right-0 bg-[#007AFF] p-2.5 rounded-full border-4 border-white dark:border-[#1C1C1E] shadow-md active:scale-90">
-            <Camera size={16} color="white" />
-          </button>
-        </div>
-        <h2 className="text-2xl font-extrabold">{user.name}, {user.age}</h2>
-        <p className="text-gray-500 text-[15px] font-medium mb-4">@{user.username}</p>
-        
-        <div className="w-full text-left bg-[#F2F2F7] dark:bg-[#2C2C2E] p-4 rounded-2xl relative">
-          <p className="text-[15px] text-gray-700 dark:text-gray-300 italic font-medium leading-relaxed">"{user.bio}"</p>
-        </div>
-      </div>
-
-      {/* Incoming Requests */}
-      <div className="mb-6">
-        <h3 className="text-lg font-extrabold px-2 mb-3 text-gray-900 dark:text-white uppercase tracking-wide text-sm">
-          Friend Requests ({incoming.length})
-        </h3>
-        {incoming.length === 0 ? (
-          <div className="bg-white dark:bg-[#1C1C1E] rounded-[1.5rem] p-6 text-center text-gray-500 text-[15px] font-medium shadow-sm">
-            No new requests right now.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {incoming.map(req => (
-              <div key={req.id} className="bg-white dark:bg-[#1C1C1E] rounded-[1.5rem] p-4 flex items-center shadow-sm gap-4">
-                <img src={req.photo} className="w-14 h-14 rounded-full object-cover shadow-sm" alt="" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-[17px] truncate">{req.name}</h4>
-                  <p className="text-sm font-semibold text-[#F59E0B] flex items-center gap-1">
-                    <Flame size={14} /> {calculateSparkScore(user, req).total}% Match
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => onDecline(req)} className="w-10 h-10 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] flex items-center justify-center text-gray-500 active:scale-90 transition-transform">
-                    <X size={20} strokeWidth={2.5} />
-                  </button>
-                  <button onClick={() => onAccept(req)} className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center text-white active:scale-90 transition-transform shadow-md shadow-blue-500/30">
-                    <Check size={20} strokeWidth={3} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Outgoing Requests */}
-      {outgoing.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-lg font-extrabold px-2 mb-3 text-gray-900 dark:text-white uppercase tracking-wide text-sm">
-            Sent Requests
-          </h3>
-          <div className="space-y-3">
-            {outgoing.map(req => (
-              <div key={req.id} className="bg-white dark:bg-[#1C1C1E] rounded-[1.5rem] p-4 flex items-center shadow-sm gap-4">
-                <img src={req.photo} className="w-12 h-12 rounded-full object-cover shadow-sm grayscale-[30%]" alt="" />
-                <div className="flex-1">
-                  <h4 className="font-bold text-[17px]">{req.name}</h4>
-                  <p className="text-xs text-gray-500 font-medium">Pending</p>
-                </div>
-                <button onClick={() => onCancel(req)} className="px-4 py-2 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] text-red-500 text-sm font-bold active:scale-95 transition-transform">
-                  Cancel
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ==========================================
-// 9. TAB: CHATS (Right)
-// ==========================================
-const ChatsTab = ({ user, matches }) => {
-  const [activeChat, setActiveChat] = useState(null);
-
-  if (activeChat) {
-    return <ChatRoom currentUser={user} partner={activeChat} onBack={() => setActiveChat(null)} />;
-  }
-
-  return (
-    <div className="h-full px-4 pt-4 pb-6 overflow-y-auto animate-in fade-in duration-300">
-      
-      {matches.length === 0 ? (
-        <div className="h-[60vh] flex flex-col items-center justify-center text-center text-gray-500">
-          <div className="w-20 h-20 bg-gray-200 dark:bg-[#1C1C1E] rounded-full flex items-center justify-center mb-4">
-            <MessageCircle size={40} className="text-gray-400" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">No Matches Yet</h2>
-          <p className="text-[15px]">Keep swiping to find your sparks!</p>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-[#1C1C1E] rounded-[2rem] overflow-hidden shadow-sm">
-          {matches.map((match, idx) => (
-            <div 
-              key={match.id} 
-              onClick={() => setActiveChat(match)}
-              className={`p-4 flex items-center gap-4 cursor-pointer active:bg-gray-50 dark:active:bg-[#2C2C2E] transition-colors
-                ${idx !== matches.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}
-            >
-              <div className="relative">
-                <img src={match.photo} className="w-14 h-14 rounded-full object-cover" alt="" />
-                <div className="absolute -bottom-1 -right-1 bg-[#FBBF24] w-5 h-5 rounded-full border-2 border-white dark:border-[#1C1C1E] flex items-center justify-center shadow-sm">
-                   <Flame size={10} color="white" fill="currentColor" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-[17px] truncate">{match.name}</h4>
-                <p className="text-[15px] text-gray-500 truncate mt-0.5">Start the conversation! 👋</p>
-              </div>
-              <ChevronRight size={20} className="text-gray-300" />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ChatRoom = ({ partner, onBack }) => {
-  const [msg, setMsg] = useState('');
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Hey! Looks like we're a match! 🔥", sender: 'partner', time: '10:00 AM' }
-  ]);
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => { scrollToBottom() }, [messages]);
-
-  const send = () => {
-    if(!msg.trim()) return;
-    const newMsg = { id: Date.now(), text: msg, sender: 'me', time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
-    setMessages(prev => [...prev, newMsg]);
-    setMsg('');
-    
-    // Mock auto-reply
-    setTimeout(() => {
-      setMessages(prev => [...prev, { 
-        id: Date.now(), 
-        text: "That's awesome! How's your day going? 😊", 
-        sender: 'partner',
-        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-      }]);
-    }, 1500);
-  }
-
-  return (
-    <div className="absolute inset-0 bg-[#F2F2F7] dark:bg-black z-50 flex flex-col animate-in slide-in-from-right duration-300">
-      {/* Header */}
-      <div className="bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-xl pt-12 pb-4 px-4 flex items-center gap-4 shadow-sm z-10 sticky top-0 border-b border-gray-200 dark:border-gray-800">
-        <button onClick={onBack} className="text-[#007AFF] p-1 active:opacity-50">
-          <ArrowLeft size={28} />
-        </button>
-        <img src={partner.photo} className="w-10 h-10 rounded-full object-cover" alt="" />
-        <div className="flex-1">
-          <h2 className="font-bold text-[17px] leading-tight">{partner.name}</h2>
-          <p className="text-[11px] text-[#007AFF] font-semibold">Online</p>
-        </div>
-        <button className="text-[#007AFF] p-1">
-          <Info size={24} />
-        </button>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-6">
-        <div className="text-center text-xs font-semibold text-gray-400 mb-6 uppercase tracking-wider">Today</div>
-        {messages.map((m, index) => {
-          const isMe = m.sender === 'me';
-          return (
-            <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[75%] px-4 py-3 text-[16px] leading-relaxed shadow-sm
-                ${isMe ? 'bg-[#007AFF] text-white rounded-[1.25rem] rounded-br-sm' : 'bg-white dark:bg-[#1C1C1E] text-gray-900 dark:text-white rounded-[1.25rem] rounded-bl-sm'}`}>
-                {m.text}
-              </div>
-              <span className="text-[10px] text-gray-400 mt-1 px-1">{m.time}</span>
-            </div>
-          )
-        })}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="bg-[#F2F2F7] dark:bg-black p-4 pb-8 border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
-        <input 
-          type="text" 
-          value={msg}
-          onChange={e => setMsg(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && send()}
-          placeholder="iMessage..."
-          className="flex-1 bg-white dark:bg-[#1C1C1E] rounded-full px-5 py-3.5 text-[16px] focus:outline-none border border-gray-200 dark:border-gray-800 shadow-sm"
-        />
-        <button 
-          onClick={send} 
-          disabled={!msg.trim()}
-          className={`w-11 h-11 rounded-full flex items-center justify-center text-white transition-all
-            ${msg.trim() ? 'bg-[#007AFF] active:scale-90 shadow-md' : 'bg-gray-300 dark:bg-gray-800'}`}
-        >
-          <Send size={18} className="ml-1" strokeWidth={2.5} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ==========================================
-// 10. ONBOARDING FLOW
-// ==========================================
-const OnboardingFlow = ({ onComplete }) => {
-  const [step, setStep] = useState(0); 
-  const [qStep, setQStep] = useState(0); 
-  
-  const [data, setData] = useState({
-    name: '', username: '', photo: '', age: '', gender: '', lookingFor: '', 
-    location: '', bio: '', answers: { ab: [], list: [[],[],[],[],[]] }
-  });
-
-  const [errors, setErrors] = useState({});
-
-  // Auto-fill from Telegram Environment
-  useEffect(() => {
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tgUser) {
-      setData(prev => ({
-        ...prev,
-        name: tgUser.first_name || '',
-        username: tgUser.username || '',
-        photo: tgUser.photo_url || 'https://i.pravatar.cc/300?img=60'
-      }));
-    } else {
-      setData(prev => ({...prev, photo: 'https://i.pravatar.cc/300?img=60'}));
-    }
-  }, []);
-
-  const validateAndNext = () => {
-    let newErrors = {};
-    if (step === 1 && !data.name.trim()) newErrors.name = "Name is required";
-    if (step === 2 && !data.username.trim()) newErrors.username = "Username is required";
-    if (step === 4 && (!data.age || data.age < 13 || data.age > 99)) newErrors.age = "Must be between 13 and 99";
-    if (step === 7 && !data.location.trim()) newErrors.location = "Location is required";
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    
-    setErrors({});
-    setStep(prev => prev + 1);
-  };
-
-  const finish = () => {
-    if(data.bio.length < 150) {
-      setErrors({ bio: "Please write at least 150 characters." });
-      return;
-    }
-    onComplete({ ...data, id: 'currentUser' });
-  };
-
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setData(prev => ({ ...prev, photo: URL.createObjectURL(file) }));
-    }
-  };
-
-  const handleABAnswer = (choiceIndex) => {
-    const newAB = [...data.answers.ab];
-    newAB[qStep] = choiceIndex;
-    setData(prev => ({...prev, answers: {...prev.answers, ab: newAB}}));
-    
-    setTimeout(() => {
-      if(qStep < 19) setQStep(prev => prev + 1);
-      else validateAndNext();
-    }, 250);
-  };
-
-  const handleListToggle = (optionIndex) => {
-    const listIndex = qStep - 15;
-    const currentSelections = [...data.answers.list[listIndex]];
-    
-    if (currentSelections.includes(optionIndex)) {
-      setData(prev => {
-        const newList = [...prev.answers.list];
-        newList[listIndex] = currentSelections.filter(i => i !== optionIndex);
-        return {...prev, answers: {...prev.answers, list: newList}};
-      });
-    } else {
-      if(currentSelections.length >= 5) return; // Limit 5
-      setData(prev => {
-        const newList = [...prev.answers.list];
-        newList[listIndex] = [...currentSelections, optionIndex];
-        return {...prev, answers: {...prev.answers, list: newList}};
-      });
-    }
-  };
-
-  const renderStep = () => {
-    switch(step) {
-      case 0:
-        return (
-          <div className="h-full flex flex-col justify-center items-center text-center px-6 animate-in fade-in duration-700">
-            <div className="w-28 h-28 bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl rotate-6 border-4 border-white dark:border-[#1C1C1E]">
-              <Sparkles size={60} color="white" />
-            </div>
-            <h1 className="text-4xl font-extrabold mb-4 tracking-tight">Find your Spark</h1>
-            <p className="text-[17px] text-gray-500 font-medium mb-12 max-w-[280px]">Answer deep questions, find people you actually connect with.</p>
-            <div className="w-full">
-              <AppleButton onClick={validateAndNext}>Get Started</AppleButton>
-            </div>
-          </div>
-        );
-      
-      // Text Input Steps
-      case 1:
-      case 2:
-      case 4:
-      case 7:
-        const fields = [
-          null,
-          { key: 'name', label: "What's your display name?", type: 'text', placeholder: 'e.g. Alex' },
-          { key: 'username', label: "Choose a username", type: 'text', placeholder: 'e.g. alex_123' },
-          null, 
-          { key: 'age', label: "How old are you?", type: 'number', placeholder: 'e.g. 24' },
-          null, null,
-          { key: 'location', label: "Where are you based?", type: 'text', placeholder: 'City, Country' }
-        ];
-        const field = fields[step];
-        return (
-          <div className="h-full flex flex-col px-6 pt-16 animate-in slide-in-from-right duration-300">
-            <h2 className="text-3xl font-extrabold mb-8">{field.label}</h2>
-            <Input 
-              type={field.type} 
-              placeholder={field.placeholder} 
-              value={data[field.key]} 
-              onChange={e => {
-                setData({...data, [field.key]: e.target.value});
-                setErrors({});
-              }}
-              error={errors[field.key]}
-              autoFocus
-            />
-            <div className="mt-auto mb-10">
-              <AppleButton onClick={validateAndNext}>Continue</AppleButton>
-            </div>
-          </div>
-        );
-      
-      // Photo Upload
-      case 3:
-        return (
-           <div className="h-full flex flex-col items-center px-6 pt-16 animate-in slide-in-from-right duration-300 text-center">
-            <h2 className="text-3xl font-extrabold mb-8">Add a photo</h2>
-            <div className="relative mb-12">
-              <img src={data.photo} alt="Upload" className="w-48 h-48 rounded-full object-cover bg-gray-200 dark:bg-gray-800 shadow-xl border-4 border-white dark:border-[#1C1C1E]" />
-              
-              <label className="absolute bottom-2 right-2 w-14 h-14 bg-[#007AFF] text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border-4 border-white dark:border-black cursor-pointer">
-                <Upload size={24} />
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-              </label>
-            </div>
-            <p className="text-gray-500 font-medium mb-auto">Make sure your face is visible!</p>
-            <div className="w-full mb-10 mt-auto">
-              <AppleButton onClick={validateAndNext}>Looks Good</AppleButton>
-            </div>
-          </div>
-        );
-      
-      // Option Selection Steps
-      case 5:
-      case 6:
-        const opts = step === 5 
-          ? { title: "I identify as", choices: ['Male', 'Female', 'Non-binary', 'Prefer not to say'], key: 'gender' }
-          : { title: "I'm looking for", choices: ['Male', 'Female', 'Non-binary', 'Anyone'], key: 'lookingFor' };
-        
-        return (
-          <div className="h-full flex flex-col px-6 pt-16 animate-in slide-in-from-right duration-300">
-            <h2 className="text-3xl font-extrabold mb-8">{opts.title}</h2>
-            <div className="space-y-4">
-              {opts.choices.map(c => (
-                <button 
-                  key={c}
-                  onClick={() => { setData({...data, [opts.key]: c}); setTimeout(validateAndNext, 250); }}
-                  className={`w-full py-5 px-6 text-left rounded-2xl font-bold text-[17px] transition-all border-2 
-                    ${data[opts.key] === c 
-                      ? 'border-[#007AFF] bg-blue-50 dark:bg-[#007AFF]/20 text-[#007AFF] shadow-sm' 
-                      : 'border-transparent bg-white dark:bg-[#1C1C1E] text-gray-900 dark:text-white shadow-sm'}`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      
-      // Questionnaire (20 Questions)
-      case 8:
-        const progress = ((qStep) / 20) * 100;
-        
-        if (qStep < 15) {
-          // A/B Questionnaire
-          const q = AB_QUESTIONS[qStep];
-          return (
-             <div className="h-full flex flex-col px-6 pt-16 pb-10 bg-[#F2F2F7] dark:bg-black animate-in fade-in duration-300">
-                <div className="w-full bg-gray-200 dark:bg-[#1C1C1E] rounded-full h-2 mb-10 overflow-hidden">
-                  <div className="bg-[#007AFF] h-full rounded-full transition-all duration-300 ease-out" style={{width: `${progress}%`}}></div>
-                </div>
-                <h2 className="text-3xl font-extrabold mb-12 text-center tracking-tight">Which sounds more like you?</h2>
-                
-                <div className="flex-1 flex flex-col gap-5">
-                  {[0, 1].map(idx => (
-                    <button 
-                      key={idx}
-                      onClick={() => handleABAnswer(idx)}
-                      className={`flex-1 bg-white dark:bg-[#1C1C1E] rounded-[2rem] shadow-sm border-2 transition-all active:scale-[0.98] flex items-center justify-center p-6
-                        ${data.answers.ab[qStep] === idx ? 'border-[#007AFF]' : 'border-transparent'}`}
-                    >
-                      <span className="text-2xl font-bold text-center leading-tight">{q[idx]}</span>
-                    </button>
-                  ))}
-                </div>
-             </div>
-          );
-        } else {
-          // List Questionnaire
-          const listIndex = qStep - 15;
-          const q = LIST_QUESTIONS[listIndex];
-          const currentSelections = data.answers.list[listIndex];
-          
-          return (
-             <div className="h-full flex flex-col px-6 pt-16 pb-8 bg-[#F2F2F7] dark:bg-black animate-in slide-in-from-right duration-300">
-                <div className="w-full bg-gray-200 dark:bg-[#1C1C1E] rounded-full h-2 mb-8 overflow-hidden">
-                  <div className="bg-[#007AFF] h-full rounded-full transition-all duration-300 ease-out" style={{width: `${progress}%`}}></div>
-                </div>
-                <h2 className="text-2xl font-extrabold mb-2">{q.title}</h2>
-                <p className="text-gray-500 font-semibold mb-6">Select up to 5 ({currentSelections.length}/5)</p>
-                
-                <div className="flex-1 overflow-y-auto mb-4 space-y-3 pb-10 hide-scrollbar">
-                  {q.options.map((opt, idx) => {
-                    const isSelected = currentSelections.includes(idx);
-                    const isDisabled = !isSelected && currentSelections.length >= 5;
-                    return (
-                      <button 
-                        key={idx}
-                        onClick={() => handleListToggle(idx)}
-                        disabled={isDisabled}
-                        className={`w-full py-4 px-5 text-left rounded-2xl font-bold text-[17px] transition-all border-2 flex justify-between items-center
-                          ${isSelected 
-                            ? 'border-[#007AFF] bg-blue-50 dark:bg-[#007AFF]/20 text-[#007AFF] shadow-sm' 
-                            : 'border-transparent bg-white dark:bg-[#1C1C1E] shadow-sm'}
-                          ${isDisabled ? 'opacity-50' : ''}`}
-                      >
-                        {opt}
-                        {isSelected && <Check size={20} strokeWidth={3} />}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div className="pt-2">
-                  <AppleButton 
-                    disabled={currentSelections.length === 0}
-                    onClick={() => {
-                      if (qStep < 19) setQStep(prev => prev + 1);
-                      else validateAndNext();
-                    }}
-                  >
-                    {qStep < 19 ? 'Next' : 'Calculate My Spark'}
-                  </AppleButton>
-                </div>
-             </div>
-          );
-        }
-      
-      // Bio
-      case 9:
-        return (
-          <div className="h-full flex flex-col px-6 pt-16 animate-in slide-in-from-right duration-300 bg-[#F2F2F7] dark:bg-black">
-            <h2 className="text-3xl font-extrabold mb-3">Your Bio</h2>
-            <p className="text-gray-500 font-medium mb-6">What makes you a great friend?</p>
-            
-            <div className="relative">
-              <textarea 
-                className={`w-full h-56 bg-white dark:bg-[#1C1C1E] rounded-[2rem] p-6 focus:outline-none focus:ring-2 resize-none text-[17px] shadow-sm font-medium leading-relaxed
-                  ${errors.bio ? 'ring-2 ring-red-500' : 'focus:ring-[#007AFF]'}`}
-                placeholder="I make great playlists, I'll always tell you if you have food in your teeth, and I'm always down for a late-night drive..."
-                value={data.bio}
-                onChange={e => {
-                  setData({...data, bio: e.target.value});
-                  setErrors({});
-                }}
-                maxLength={300}
-              />
-              <p className={`absolute bottom-4 right-6 text-sm font-bold ${data.bio.length < 150 ? 'text-red-400' : 'text-gray-400'}`}>
-                {data.bio.length}/300
-              </p>
-            </div>
-            
-            {errors.bio && <p className="text-red-500 text-sm mt-3 font-semibold ml-2">{errors.bio}</p>}
-            <p className="text-gray-500 text-sm mt-4 font-medium ml-2">Minimum 150 characters.</p>
-
-            <div className="mt-auto mb-10">
-              <AppleButton onClick={finish} disabled={data.bio.length < 150}>Complete Profile</AppleButton>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-[#F2F2F7] dark:bg-black text-black dark:text-white font-sans overflow-hidden z-50">
-      {/* Dynamic Back Button */}
-      {step > 0 && step !== 8 && (
-        <button onClick={() => setStep(prev => prev - 1)} className="absolute top-5 left-4 p-2 z-10 text-[#007AFF] active:opacity-50">
-          <ArrowLeft size={28} />
-        </button>
-      )}
-      {step === 8 && qStep > 0 && (
-         <button onClick={() => setQStep(prev => prev - 1)} className="absolute top-5 left-4 p-2 z-10 text-[#007AFF] active:opacity-50">
-          <ArrowLeft size={28} />
-        </button>
-      )}
-      
-      {renderStep()}
-    </div>
-  );
-}
-
-```
+    renderOnboarding();
+  })();
+</script>
+</body>
+</html>

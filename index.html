@@ -1,491 +1,1848 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=yes">
-  <title>Spark ✦ Friend Match</title>
-  <!-- Telegram Web App SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>Spark – Friend Matcher</title>
 
-    :root {
-      --blue: #0A84FF;
-      --blue-light: #64B5FF;
-      --blue-dark: #0055CC;
-      --gold: #F59E0B;
-      --gold-bright: #FBBF24;
-      --light-bg: #F5F5F7;
-      --light-surface: #FFFFFF;
-      --light-text: #1D1D1F;
-      --light-secondary: #86868B;
-      --dark-bg: #000000;
-      --dark-surface: #1C1C1E;
-      --dark-text: #F5F5F7;
-      --dark-secondary: #A1A1A6;
-      --radius: 20px;
-      --shadow: 0 10px 25px rgba(0,0,0,0.05);
-    }
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
 
-    body {
-      background: var(--light-bg);
-      color: var(--light-text);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-      padding: 10px;
-    }
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js">
+    </script>
 
-    body.dark {
-      background: var(--dark-bg);
-      color: var(--dark-text);
-    }
+    <script src="https://cdn.tailwindcss.com">
+    </script>
 
-    .app-container {
-      width: 100%;
-      max-width: 400px;
-      height: 95vh;
-      max-height: 850px;
-      background: var(--light-surface);
-      border-radius: 36px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 30px 50px rgba(0,0,0,0.15);
-      position: relative;
-      transition: background 0.3s;
-    }
+    <style>
+        /* ─── RESET ─── */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body.dark .app-container {
-      background: var(--dark-surface);
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f2f2f7;
+            color: #1c1c1e;
+            transition: background 0.3s, color 0.3s;
+        }
 
-    /* Screens & tabs container */
-    .screen {
-      display: none;
-      flex-direction: column;
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      padding: 20px;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    .screen::-webkit-scrollbar { display: none; }
-    .screen.active { display: flex; }
+        /* ─── DARK MODE ─── */
+        body.dark-mode {
+            background: #0a0a0f;
+            color: #f5f5fa;
+        }
 
-    /* Onboarding specific */
-    .onboarding-slide {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      width: 100%;
-      animation: fadeSlide 0.3s ease;
-    }
-    .onboarding-slide.active { display: flex; }
-    
-    @keyframes fadeSlide {
-      0% { opacity: 0; transform: translateY(12px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
+        body.dark-mode .bg-apple-light {
+            background: #1c1c1e;
+        }
+        body.dark-mode .bg-apple-card {
+            background: #2c2c2e;
+        }
+        body.dark-mode .text-apple-secondary {
+            color: #8e8e93;
+        }
+        body.dark-mode .border-apple {
+            border-color: #3a3a3c;
+        }
+        body.dark-mode .bg-apple-input {
+            background: #2c2c2e;
+        }
+        body.dark-mode .bg-apple-nav {
+            background: rgba(28, 28, 30, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
 
-    .btn {
-      background: var(--blue);
-      color: white;
-      border: none;
-      padding: 14px 28px;
-      border-radius: 40px;
-      font-weight: 600;
-      font-size: 17px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 12px rgba(10,132,255,0.3);
-      margin-top: 16px;
-      width: 100%;
-    }
-    .btn:active { transform: scale(0.96); opacity: 0.9; }
-    .btn.secondary {
-      background: transparent;
-      color: var(--blue);
-      box-shadow: none;
-      border: 1px solid var(--blue);
-    }
-    body.dark .btn.secondary { color: var(--blue-light); border-color: var(--blue-light); }
+        /* ─── LIGHT MODE ─── */
+        body.light-mode {
+            background: #f2f2f7;
+            color: #1c1c1e;
+        }
 
-    input, select, textarea {
-      width: 100%;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid #E5E5EA;
-      background: var(--light-bg);
-      font-size: 16px;
-      margin-top: 10px;
-      outline: none;
-      transition: 0.2s;
-    }
-    body.dark input, body.dark select, body.dark textarea {
-      background: #2C2C2E;
-      border-color: #3A3A3C;
-      color: white;
-    }
-    input:focus, textarea:focus { border-color: var(--blue); }
+        body.light-mode .bg-apple-light {
+            background: #ffffff;
+        }
+        body.light-mode .bg-apple-card {
+            background: #ffffff;
+        }
+        body.light-mode .text-apple-secondary {
+            color: #8e8e93;
+        }
+        body.light-mode .border-apple {
+            border-color: #e5e5ea;
+        }
+        body.light-mode .bg-apple-input {
+            background: #f2f2f7;
+        }
+        body.light-mode .bg-apple-nav {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
 
-    .profile-img {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: #E5E5EA;
-      margin: 10px auto;
-      border: 3px solid var(--blue);
-    }
+        /* ─── SHARED ─── */
+        .bg-apple-light {
+            background: #ffffff;
+        }
+        .bg-apple-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        }
+        .text-apple-secondary {
+            color: #8e8e93;
+        }
+        .border-apple {
+            border-color: #e5e5ea;
+        }
+        .bg-apple-input {
+            background: #f2f2f7;
+        }
+        .bg-apple-nav {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
 
-    .tab-bar {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 12px 16px;
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(0,0,0,0.05);
-      transition: 0.3s;
-    }
-    body.dark .tab-bar {
-      background: rgba(28,28,30,0.8);
-      border-top: 1px solid rgba(255,255,255,0.1);
-    }
-    .tab-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--light-secondary);
-      cursor: pointer;
-      transition: 0.2s;
-      position: relative;
-    }
-    .tab-item.active { color: var(--blue); }
-    .badge {
-      position: absolute;
-      top: -6px;
-      right: -10px;
-      background: #FF3B30;
-      color: white;
-      border-radius: 10px;
-      font-size: 10px;
-      padding: 2px 6px;
-      font-weight: bold;
-    }
+        /* ─── APPLE BUTTONS ─── */
+        .btn-apple {
+            background: #007AFF;
+            color: white;
+            font-weight: 600;
+            border-radius: 14px;
+            padding: 14px 24px;
+            border: none;
+            font-size: 16px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
 
-    /* Card styles */
-    .match-card {
-      background: var(--light-surface);
-      border-radius: 32px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      margin: 10px 0;
-      transition: 0.2s;
-    }
-    body.dark .match-card { background: #2C2C2E; }
+        .btn-apple:active {
+            transform: scale(0.97);
+            opacity: 0.85;
+        }
 
-    .spark-score {
-      font-weight: 700;
-      font-size: 24px;
-      color: var(--gold);
-    }
-  </style>
+        .btn-apple-outline {
+            background: transparent;
+            color: #007AFF;
+            border: 2px solid #007AFF;
+        }
+
+        .btn-apple-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        /* ─── SCROLLBAR ─── */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes scaleUp {
+            from {
+                transform: scale(0.95);
+                opacity: 0.7;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .animate-scale-up {
+            animation: scaleUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ─── LINE CLAMP ─── */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* ─── CHAT BUBBLES ─── */
+        .bubble-me {
+            background: #007AFF;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 20px 20px 4px 20px;
+            max-width: 80%;
+            align-self: flex-end;
+            font-weight: 500;
+        }
+
+        .bubble-them {
+            background: #e9e9ed;
+            color: #1c1c1e;
+            padding: 10px 16px;
+            border-radius: 20px 20px 20px 4px;
+            max-width: 80%;
+            align-self: flex-start;
+            font-weight: 500;
+        }
+
+        body.dark-mode .bubble-them {
+            background: #2c2c2e;
+            color: #f5f5fa;
+        }
+
+        /* ─── TAB CENTERING ─── */
+        #tab-match {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 65vh;
+            width: 100%;
+            padding: 16px 0;
+        }
+        #tab-chats {
+            display: flex;
+            flex-direction: column;
+            min-height: 65vh;
+            width: 100%;
+            padding: 16px 0;
+        }
+        #tab-profile {
+            display: flex;
+            flex-direction: column;
+            min-height: 65vh;
+            width: 100%;
+            padding: 16px 0;
+        }
+        #deck-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            flex: 1;
+            padding: 8px 0;
+        }
+
+        /* ─── SELECTION STYLES ─── */
+        .option-selected {
+            border-color: #007AFF !important;
+            background-color: rgba(0, 122, 255, 0.12) !important;
+            color: #007AFF !important;
+            font-weight: 600 !important;
+        }
+        .option-selected .checkmark {
+            display: inline-block !important;
+        }
+        .checkmark {
+            display: none;
+            margin-right: 8px;
+            color: #007AFF;
+        }
+
+        /* ─── SETTINGS TOGGLES ─── */
+        .toggle-track {
+            width: 48px;
+            height: 28px;
+            background: #e5e5ea;
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        body.dark-mode .toggle-track {
+            background: #3a3a3c;
+        }
+
+        .toggle-track.active {
+            background: #007AFF;
+        }
+
+        .toggle-thumb {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.25s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .toggle-track.active .toggle-thumb {
+            transform: translateX(20px);
+        }
+
+        /* ─── SETTINGS ITEMS ─── */
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #e5e5ea;
+            cursor: pointer;
+        }
+
+        body.dark-mode .settings-item {
+            border-bottom-color: #3a3a3c;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item .s-label {
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .settings-item .s-sub {
+            font-size: 13px;
+            color: #8e8e93;
+        }
+        .settings-item .s-arrow {
+            color: #c7c7cc;
+            font-size: 16px;
+        }
+
+        /* ─── MATCH CARD ─── */
+        .match-card {
+            background: #ffffff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 380px;
+            transition: all 0.2s ease;
+        }
+
+        body.dark-mode .match-card {
+            background: #1c1c1e;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .match-card .card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .match-card .card-body {
+            padding: 16px 18px 18px;
+        }
+
+        .match-card .card-name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .match-card .card-spark {
+            font-size: 13px;
+            font-weight: 600;
+            color: #007AFF;
+            background: rgba(0, 122, 255, 0.1);
+            padding: 2px 12px;
+            border-radius: 12px;
+        }
+
+        .match-card .card-bio {
+            font-size: 13px;
+            color: #8e8e93;
+            margin-top: 4px;
+        }
+
+        .match-card .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .match-card .card-actions .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .match-card .card-actions .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-skip {
+            background: #f2f2f7;
+            color: #8e8e93;
+        }
+        body.dark-mode .btn-skip {
+            background: #2c2c2e;
+            color: #8e8e93;
+        }
+
+        .btn-like {
+            background: #007AFF;
+            color: white;
+        }
+
+        .btn-chat {
+            background: #34C759;
+            color: white;
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 420px) {
+            #app {
+                border-radius: 0;
+                height: 100vh;
+                max-height: 100vh;
+            }
+            .bottom-tabs {
+                border-radius: 0;
+            }
+            body {
+                padding: 0;
+            }
+        }
+
+        /* ─── APP CONTAINER ─── */
+        #app {
+            max-width: 420px;
+            width: 100%;
+            min-height: 100vh;
+            margin: 0 auto;
+            padding: 12px 16px 100px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ─── BOTTOM TABS ─── */
+        .bottom-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 420px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 8px 0 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+            border-radius: 20px 20px 0 0;
+        }
+
+        body.dark-mode .bottom-tabs {
+            background: rgba(28, 28, 30, 0.92);
+            border-top-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .tab-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: none;
+            border: none;
+            color: #8e8e93;
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 4px 12px;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        .tab-btn .tab-icon {
+            font-size: 22px;
+        }
+
+        .tab-btn.active {
+            color: #007AFF;
+        }
+
+        .tab-btn .badge {
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            background: #FF3B30;
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+
+        .tab-btn .badge.hidden {
+            display: none;
+        }
+
+        /* ─── ONBOARDING ─── */
+        #view-onboarding {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px 0 8px;
+        }
+
+        #onboarding-slide-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 8px 0;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: #e5e5ea;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        body.dark-mode .progress-track {
+            background: #2c2c2e;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007AFF, #5AC8FA);
+            border-radius: 2px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 9%;
+        }
+
+        /* ─── LANGUAGES ─── */
+        .lang-option {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 2px solid #e5e5ea;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.dark-mode .lang-option {
+            border-color: #3a3a3c;
+        }
+
+        .lang-option.selected {
+            border-color: #007AFF;
+            background: rgba(0, 122, 255, 0.08);
+        }
+
+        .lang-option .lang-flag {
+            font-size: 24px;
+        }
+
+        .lang-option .lang-name {
+            font-weight: 500;
+            font-size: 15px;
+        }
+    </style>
 </head>
 <body>
-<div class="app-container" id="appContainer">
-  <!-- Onboarding Screen -->
-  <div id="onboardingScreen" class="screen active"></div>
 
-  <!-- Main Tabs (Match, Chats, Profile) -->
-  <div id="mainScreen" class="screen" style="padding: 0; display: none;">
-    <div style="flex:1; overflow-y: auto; padding: 20px;" id="tabContent"></div>
-    <div class="tab-bar">
-      <div class="tab-item" data-tab="profile"><span>👤</span><span>Profile</span><span class="badge" id="profileBadge" style="display:none;">0</span></div>
-      <div class="tab-item active" data-tab="match"><span>✨</span><span>Match</span></div>
-      <div class="tab-item" data-tab="chats"><span>💬</span><span>Chats</span></div>
-    </div>
-  </div>
-</div>
+    <!-- ─── APP ─── -->
+    <div id="app">
 
-<script>
-  (function() {
-    // ----------------------------------- STATE -----------------------------------
-    const tg = window.Telegram?.WebApp;
-    let currentUser = null;
-    let users = []; // mock profiles
-    let currentMatchIndex = 0;
-    let friendRequests = []; // incoming to current user
-    let outgoingRequests = [];
-    let chats = [];
-    let activeTab = 'match';
+        <!-- ─── ONBOARDING ─── -->
+        <div id="view-onboarding" class="animate-fade-in">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <span id="connection-badge" class="text-xs font-semibold text-[#007AFF] tracking-wide">✨ Spark</span>
+                    <span id="lang-indicator" class="text-xs text-apple-secondary">🌐 EN</span>
+                </div>
+                <div class="progress-track">
+                    <div id="onboarding-progress" class="progress-fill"></div>
+                </div>
+            </div>
 
-    // Onboarding state
-    let onboardingStep = 0;
-    let onboardingData = {
-      displayName: '', username: '', photo: '', age: '', gender: '', lookingFor: '', city: '', country: '', bio: '',
-      answers: [] // array of 20 answers
-    };
+            <div id="onboarding-slide-container"></div>
 
-    // Mock profiles for matching
-    function generateMockUsers() {
-      return [
-        { id: 'u1', displayName: 'Alex Rivera', username: 'alex_r', photo: 'https://i.pravatar.cc/150?img=11', age: 26, gender: 'Male', city: 'Barcelona', country: 'Spain', bio: 'Love exploring cities and deep talks.', answers: generateRandomAnswers() },
-        { id: 'u2', displayName: 'Jamie Lee', username: 'jamielee', photo: 'https://i.pravatar.cc/150?img=5', age: 24, gender: 'Female', city: 'Seoul', country: 'South Korea', bio: 'Coffee addict and meme lover.', answers: generateRandomAnswers() },
-        { id: 'u3', displayName: 'Taylor Chen', username: 'taychen', photo: 'https://i.pravatar.cc/150?img=12', age: 28, gender: 'Non-binary', city: 'Toronto', country: 'Canada', bio: 'Creative soul into art and hiking.', answers: generateRandomAnswers() },
-      ];
-    }
-
-    function generateRandomAnswers() {
-      let a = [];
-      for(let i=0; i<15; i++) a.push(Math.random()>0.5 ? 'A' : 'B');
-      const lists = [
-        ['Nature','Eating out','Nightlife'], ['Life struggles','Pop culture'], ['Voice notes','Meme sharing'], ['Use humor','Address immediately'], ['Remember details','Check in']
-      ];
-      lists.forEach(l => a.push(l));
-      return a;
-    }
-
-    // ----------------------------------- UTILS -----------------------------------
-    function calculateSpark(myAnswers, otherAnswers) {
-      let abMatch = 0;
-      for(let i=0; i<15; i++) if(myAnswers[i] === otherAnswers[i]) abMatch++;
-      const abScore = (abMatch/15)*100;
-      
-      let listSum = 0;
-      for(let i=15; i<20; i++) {
-        const mySet = new Set(myAnswers[i] || []);
-        const otherSet = new Set(otherAnswers[i] || []);
-        if(mySet.size===0 || otherSet.size===0) { listSum+=0; continue; }
-        let overlap = [...mySet].filter(x=>otherSet.has(x)).length;
-        listSum += (overlap / Math.max(mySet.size, otherSet.size)) * 100;
-      }
-      const listScore = listSum/5;
-      return Math.round((abScore*0.5)+(listScore*0.5));
-    }
-
-    function renderSparkBreakdown(myAns, otherAns) {
-      let abMatch=0; for(let i=0;i<15;i++) if(myAns[i]===otherAns[i]) abMatch++;
-      return `<b>${abMatch}/15 same choices</b><br>✨ Shared vibes & interests.`;
-    }
-
-    // ----------------------------------- UI RENDER -----------------------------------
-    const appContainer = document.getElementById('appContainer');
-    const onboardingScreen = document.getElementById('onboardingScreen');
-    const mainScreen = document.getElementById('mainScreen');
-    const tabContent = document.getElementById('tabContent');
-    const profileBadge = document.getElementById('profileBadge');
-
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(screenId).classList.add('active');
-    }
-
-    function updateBadges() {
-      const incoming = friendRequests.filter(r=>r.status==='pending').length;
-      if(profileBadge) {
-        profileBadge.style.display = incoming>0 ? 'block':'none';
-        profileBadge.textContent = incoming;
-      }
-    }
-
-    function renderOnboarding() {
-      const steps = [
-        () => `<div class="onboarding-slide active"><h1>✨ Find your Spark</h1><p style="margin:20px;color:gray;">Answer 20 fun questions to discover friends who truly get you.</p><button class="btn" onclick="nextOnboarding()">Get Started</button></div>`,
-        () => `<div class="onboarding-slide active"><label>Display Name</label><input id="dispName" value="${onboardingData.displayName}" placeholder="Your name"></div>`,
-        () => `<div class="onboarding-slide active"><label>Username</label><input id="username" value="${onboardingData.username}" placeholder="@username"></div>`,
-        () => `<div class="onboarding-slide active"><label>Profile Photo</label><img class="profile-img" src="${onboardingData.photo || 'https://i.pravatar.cc/150?u=default'}" id="profilePreview"><input type="file" accept="image/*" id="photoInput" style="display:none"><button class="btn secondary" onclick="document.getElementById('photoInput').click()">Upload Photo</button></div>`,
-        () => `<div class="onboarding-slide active"><label>Age</label><input type="number" id="age" value="${onboardingData.age}" min="13" max="99"></div>`,
-        () => `<div class="onboarding-slide active"><label>Gender</label><select id="gender">${['Male','Female','Non-binary','Prefer not to say'].map(g=>`<option ${onboardingData.gender===g?'selected':''}>${g}</option>`)}</select></div>`,
-        () => `<div class="onboarding-slide active"><label>Looking for</label><select id="lookingFor">${['Male','Female','Non-binary','Anyone'].map(g=>`<option ${onboardingData.lookingFor===g?'selected':''}>${g}</option>`)}</select></div>`,
-        () => `<div class="onboarding-slide active"><label>City</label><input id="city" value="${onboardingData.city}"><label>Country</label><input id="country" value="${onboardingData.country}"></div>`,
-        () => renderQuestionnaireSlide(),
-        () => `<div class="onboarding-slide active"><label>Bio (150-300 chars)</label><textarea id="bio" maxlength="300">${onboardingData.bio}</textarea></div>`,
-        () => `<div class="onboarding-slide active"><h2>🎉 You're all set!</h2><p>Start matching now.</p><button class="btn" onclick="finishOnboarding()">Enter Spark</button></div>`
-      ];
-      onboardingScreen.innerHTML = steps[onboardingStep]();
-      if(onboardingStep===3) {
-        document.getElementById('photoInput')?.addEventListener('change', (e)=> {
-          const file = e.target.files[0];
-          if(file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => { onboardingData.photo = ev.target.result; document.getElementById('profilePreview').src = ev.target.result; };
-            reader.readAsDataURL(file);
-          }
-        });
-      }
-    }
-
-    function renderQuestionnaireSlide() {
-      const qIndex = onboardingData.answers.length;
-      if(qIndex >= 20) return '';
-      if(qIndex < 15) {
-        const questions = [
-          ['🌙 Night owl','☀️ Early bird'],['🎉 Recharges in groups','🧘 Recharges alone'],['🎲 Spontaneous','📋 Meticulous'],
-          ['🧠 Deep conversations','😄 Light banter'],['🌲 Outdoorsy','🛋️ Indoorsy'],['🍜 Try new foods','🍕 Comfort food'],
-          ['🎨 Creative','📊 Logical'],['🎊 Big parties','🕯️ Small hangs'],['🗣️ Direct/blunt','🤝 Gentle/diplomatic'],
-          ['📱 Frequent texter','📞 Prefers calls'],['👤 1-on-1 hangs','👥 Group hangs'],['⏰ Strictly punctual','🌊 Go-with-the-flow'],
-          ['🌌 Big-picture thinker','🔍 Detail-oriented doer'],['💬 Open about feelings','🔒 Processes alone'],['😏 Dry/sarcastic humor','🥰 Warm/silly humor']
-        ];
-        return `<div class="onboarding-slide active"><h3>Q${qIndex+1}/20</h3><p>${questions[qIndex][0]} vs ${questions[qIndex][1]}</p>
-        <button class="btn" onclick="answerQuestion('A')">${questions[qIndex][0]}</button>
-        <button class="btn secondary" onclick="answerQuestion('B')">${questions[qIndex][1]}</button></div>`;
-      } else {
-        const listQs = [
-          {q:'What hangouts excite you?', opts:['Nature','Eating out','Nightlife','Cultural','Active sports','Cozy indoor','Shopping','Creative','Festivals','Walking']},
-          {q:'What do you talk about?', opts:['Life struggles','Relationships','Career','Pop culture','Deep philosophy','Politics','Sports','Travel','Random nonsense','Shared hobbies']},
-          {q:'How do you prefer to communicate?', opts:['Voice notes','Short texts','Phone calls','Video calls','Meme sharing','In-person only','Group chats','One-on-one DMs','Links','Weekly check-ins']},
-          {q:'Conflict style?', opts:['Address immediately','Take space','Use humor','Prefer text','Avoid unless dealbreaker','Apologize quickly','Stand ground','Ask third friend','Write thoughts','Let small things go']},
-          {q:'What makes you feel seen?', opts:['Remember details','Initiate plans','Check in','Give honest feedback','Celebrate wins','Reliable','Make me laugh','Vulnerable','Respect boundaries','Include me']}
-        ];
-        const current = listQs[qIndex-15];
-        return `<div class="onboarding-slide active"><h3>${current.q}</h3><div id="listOptions">${current.opts.map(o=>`<label style="display:block;margin:6px;"><input type="checkbox" value="${o}"> ${o}</label>`).join('')}</div><button class="btn" onclick="submitListAnswer()">Next</button></div>`;
-      }
-    }
-
-    window.answerQuestion = function(ans) {
-      onboardingData.answers.push(ans);
-      onboardingStep++;
-      renderOnboarding();
-    };
-    window.submitListAnswer = function() {
-      const checks = [...document.querySelectorAll('#listOptions input:checked')].map(c=>c.value);
-      if(checks.length===0) { alert('Select at least one'); return; }
-      onboardingData.answers.push(checks);
-      onboardingStep++;
-      renderOnboarding();
-    };
-    window.nextOnboarding = function() {
-      const fields = ['dispName','username','age','gender','lookingFor','city','country','bio'];
-      if(onboardingStep===1) onboardingData.displayName = document.getElementById('dispName')?.value || '';
-      if(onboardingStep===2) onboardingData.username = document.getElementById('username')?.value || '';
-      if(onboardingStep===4) onboardingData.age = document.getElementById('age')?.value;
-      if(onboardingStep===5) onboardingData.gender = document.getElementById('gender')?.value;
-      if(onboardingStep===6) onboardingData.lookingFor = document.getElementById('lookingFor')?.value;
-      if(onboardingStep===7) { onboardingData.city = document.getElementById('city')?.value; onboardingData.country = document.getElementById('country')?.value; }
-      if(onboardingStep===9) onboardingData.bio = document.getElementById('bio')?.value;
-      if(onboardingStep===8) return; // handled by question buttons
-      onboardingStep++;
-      renderOnboarding();
-    };
-    window.finishOnboarding = function() {
-      currentUser = {
-        id: 'me',
-        ...onboardingData,
-        photo: onboardingData.photo || 'https://i.pravatar.cc/150?u=me',
-      };
-      users = generateMockUsers();
-      showScreen('mainScreen');
-      renderTab('match');
-      updateBadges();
-    };
-
-    // Tabs
-    function renderTab(tab) {
-      activeTab = tab;
-      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab-item[data-tab=${tab}]`)?.classList.add('active');
-      if(tab==='match') renderMatchTab();
-      else if(tab==='chats') renderChatsTab();
-      else if(tab==='profile') renderProfileTab();
-    }
-
-    function renderMatchTab() {
-      if(!currentUser) return;
-      const otherUsers = users.filter(u=>u.id!==currentUser.id);
-      if(otherUsers.length===0) { tabContent.innerHTML='<p>No profiles nearby.</p>'; return; }
-      const profile = otherUsers[currentMatchIndex % otherUsers.length];
-      const spark = calculateSpark(currentUser.answers, profile.answers);
-      const shared = spark>70 ? 'Music, Coffee' : 'Outdoors';
-      tabContent.innerHTML = `
-        <div class="match-card">
-          <img src="${profile.photo}" width="100" height="100" style="border-radius:50%;">
-          <h2>${profile.displayName}, ${profile.age}</h2>
-          <p>${profile.city}, ${profile.country}</p>
-          <div class="spark-score" onclick="alert('${renderSparkBreakdown(currentUser.answers, profile.answers)}')">${spark}% Spark ✨</div>
-          <p>${profile.bio || ''}</p>
-          <div style="display:flex; gap:12px; width:100%; margin-top:10px;">
-            <button class="btn secondary" style="flex:1;" onclick="skipProfile()">❌ Skip</button>
-            <button class="btn" style="flex:1; background:#F59E0B;" onclick="sendLike('${profile.id}')">❤️ Like</button>
-          </div>
-        </div>`;
-    }
-    window.skipProfile = () => { currentMatchIndex++; renderMatchTab(); };
-    window.sendLike = (profileId) => {
-      const target = users.find(u=>u.id===profileId);
-      if(!target) return;
-      outgoingRequests.push({to: profileId, status:'pending'});
-      friendRequests.push({from: currentUser.id, to: profileId, status:'pending', user: currentUser});
-      alert('Friend request sent!');
-      currentMatchIndex++; renderMatchTab(); updateBadges();
-    };
-
-    function renderChatsTab() {
-      const mutual = chats.filter(c=>c.mutual);
-      tabContent.innerHTML = mutual.length ? mutual.map(c=>`<div class="match-card"><b>${c.with}</b><p>Spark ${c.spark}%</p></div>`).join('') : '<p>No chats yet. Match to start!</p>';
-    }
-
-    function renderProfileTab() {
-      if(!currentUser) return;
-      const incoming = friendRequests.filter(r=>r.to===currentUser.id && r.status==='pending');
-      tabContent.innerHTML = `
-        <div style="text-align:center;">
-          <img src="${currentUser.photo}" width="80" height="80" style="border-radius:50%;">
-          <h2>${currentUser.displayName}</h2><p>@${currentUser.username}</p>
-          <p>${currentUser.age}, ${currentUser.city}</p>
+            <div class="flex gap-3 pt-4 mt-2 border-t border-apple">
+                <button id="btn-onboard-back" class="btn-apple btn-apple-outline flex-1 hidden">Back</button>
+                <button id="btn-onboard-next" class="btn-apple flex-1">Continue</button>
+            </div>
         </div>
-        <h4>Incoming Requests</h4>
-        ${incoming.map(r=>`<div style="display:flex;justify-content:space-between;">${r.user?.displayName||'User'} <button onclick="acceptRequest('${r.from}')">Accept</button></div>`).join('')||'None'}
-      `;
-    }
-    window.acceptRequest = (fromId) => {
-      friendRequests = friendRequests.filter(r=>!(r.from===fromId && r.to===currentUser.id));
-      chats.push({with: users.find(u=>u.id===fromId)?.displayName, mutual:true, spark:85});
-      updateBadges(); renderProfileTab();
-    };
 
-    // Tab listeners
-    document.querySelectorAll('.tab-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        const tab = item.dataset.tab;
-        renderTab(tab);
-      });
-    });
+        <!-- ─── MAIN APP ─── -->
+        <div id="view-app-main" class="hidden flex-1 animate-fade-in" style="display:none;">
 
-    // Init Telegram
-    if(tg) {
-      tg.ready();
-      tg.expand();
-      onboardingData.displayName = tg.initDataUnsafe?.user?.first_name || '';
-      onboardingData.username = tg.initDataUnsafe?.user?.username || '';
-      if(tg.initDataUnsafe?.user?.photo_url) onboardingData.photo = tg.initDataUnsafe.user.photo_url;
-      document.body.classList.add(tg.colorScheme === 'dark' ? 'dark' : '');
-    }
-    renderOnboarding();
-  })();
-</script>
+            <!-- Tab: Spark -->
+            <div id="tab-match" class="tab-content w-full" style="display:none;">
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl font-bold text-[#1c1c1e] dark:text-white tracking-tight">✨ Spark</h2>
+                    <p class="text-sm text-apple-secondary">Find your perfect friend match</p>
+                </div>
+                <div id="deck-wrapper" class="w-full flex-1 flex items-center justify-center"></div>
+            </div>
+
+            <!-- Tab: Chats -->
+            <div id="tab-chats" class="tab-content w-full hidden" style="display:none;">
+                <div class="text-center mb-4">
+                    <h2 class="text-2xl font-bold text-[#1c1c1e] dark:text-white tracking-tight">💬 Chats</h2>
+                    <p class="text-sm text-apple-secondary">Your connections</p>
+                </div>
+                <div id="chats-list-target" class="flex-1 overflow-y-auto hide-scrollbar flex flex-col gap-3"></div>
+            </div>
+
+            <!-- Tab: Profile -->
+            <div id="tab-profile" class="tab-content w-full hidden" style="display:none;">
+                <!-- Profile Header -->
+                <div class="bg-apple-card rounded-3xl p-6 text-center shadow-sm border border-apple mb-4">
+                    <img id="my-profile-pic" src="" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-[#007AFF] shadow-lg bg-apple-input">
+                    <h3 id="my-profile-name" class="text-xl font-bold text-[#1c1c1e] dark:text-white mt-3"></h3>
+                    <p id="my-profile-handle" class="text-sm text-[#007AFF] font-medium"></p>
+                    <div class="flex gap-3 justify-center mt-3 text-xs font-medium text-apple-secondary">
+                        <span id="my-profile-age" class="bg-apple-input px-3 py-1 rounded-full"></span>
+                        <span id="my-profile-loc" class="bg-apple-input px-3 py-1 rounded-full"></span>
+                    </div>
+                    <p id="my-profile-bio" class="text-sm text-apple-secondary mt-4 italic leading-relaxed"></p>
+                </div>
+
+                <!-- Settings -->
+                <div class="bg-apple-card rounded-2xl border border-apple overflow-hidden shadow-sm">
+                    <div class="settings-item" onclick="toggleDarkMode()">
+                        <div>
+                            <div class="s-label">🌙 Dark Mode</div>
+                            <div class="s-sub">Switch between light and dark</div>
+                        </div>
+                        <div class="toggle-track" id="darkModeToggle">
+                            <div class="toggle-thumb"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-item" onclick="openLanguageSettings()">
+                        <div>
+                            <div class="s-label">🌐 Language</div>
+                            <div class="s-sub" id="current-lang-display">English</div>
+                        </div>
+                        <span class="s-arrow">›</span>
+                    </div>
+
+                    <div class="settings-item" onclick="openNotificationsSettings()">
+                        <div>
+                            <div class="s-label">🔔 Notifications</div>
+                            <div class="s-sub">Push notifications for matches</div>
+                        </div>
+                        <span class="s-arrow">›</span>
+                    </div>
+
+                    <div class="settings-item" onclick="openPrivacySettings()">
+                        <div>
+                            <div class="s-label">🔒 Privacy</div>
+                            <div class="s-sub">Who can see your profile</div>
+                        </div>
+                        <span class="s-arrow">›</span>
+                    </div>
+
+                    <div class="settings-item" onclick="editProfile()">
+                        <div>
+                            <div class="s-label">✏️ Edit Profile</div>
+                            <div class="s-sub">Update your info</div>
+                        </div>
+                        <span class="s-arrow">›</span>
+                    </div>
+
+                    <div class="settings-item" style="border-bottom: none;" onclick="logoutUser()">
+                        <div>
+                            <div class="s-label" style="color: #FF3B30;">🚪 Logout</div>
+                            <div class="s-sub">Clear local data</div>
+                        </div>
+                        <span class="s-arrow">›</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── BOTTOM TABS ─── -->
+        <div id="app-nav-bar" class="bottom-tabs hidden">
+            <button id="nav-btn-match" class="tab-btn active">
+                <span class="tab-icon">✨</span>
+                <span>Spark</span>
+            </button>
+            <button id="nav-btn-chats" class="tab-btn">
+                <span class="tab-icon">💬</span>
+                <span>Chats</span>
+                <span id="chat-count" class="badge hidden">0</span>
+            </button>
+            <button id="nav-btn-profile" class="tab-btn">
+                <span class="tab-icon">👤</span>
+                <span>Profile</span>
+                <span id="badge-incoming-count" class="badge hidden">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── CHAT MODAL ─── -->
+    <div id="chat-modal" class="fixed inset-0 z-50 bg-[#f2f2f7] dark:bg-[#0a0a0f] max-w-md mx-auto hidden flex flex-col animate-slide-up" style="display:none;">
+        <div class="px-4 py-4 bg-apple-light border-b border-apple flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img id="chat-header-avatar" src="" class="w-10 h-10 rounded-full object-cover border-2 border-[#007AFF]">
+                <div>
+                    <h4 id="chat-header-name" class="font-bold text-sm text-[#1c1c1e] dark:text-white"></h4>
+                    <p class="text-[10px] font-medium text-[#34C759] flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#34C759] inline-block animate-pulse"></span> Active
+                    </p>
+                </div>
+            </div>
+            <button id="btn-close-chat" class="w-10 h-10 bg-apple-input rounded-full flex items-center justify-center text-apple-secondary text-lg active:scale-90 transition-all">✕</button>
+        </div>
+
+        <div id="chat-messages-box" class="flex-1 p-4 overflow-y-auto hide-scrollbar flex flex-col gap-3 bg-[#f2f2f7] dark:bg-[#0a0a0f]"></div>
+
+        <div class="p-4 bg-apple-light border-t border-apple">
+            <div class="relative flex items-center">
+                <input type="text" id="chat-input-field" placeholder="Type a message..." class="w-full bg-apple-input border border-apple rounded-full pl-4 pr-14 py-3 text-sm text-[#1c1c1e] dark:text-white placeholder:text-apple-secondary focus:outline-none focus:border-[#007AFF] transition-all">
+                <button id="btn-send-message" class="absolute right-1 top-1 bottom-1 px-4 bg-[#007AFF] text-white font-semibold rounded-full text-sm active:scale-90 transition-all">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── LANGUAGE MODAL ─── -->
+    <div id="lang-modal" class="fixed inset-0 z-50 bg-black/50 max-w-md mx-auto hidden flex items-center justify-center p-4" style="display:none;" onclick="if(event.target===this) closeLanguageSettings()">
+        <div class="bg-apple-light dark:bg-[#1c1c1e] rounded-3xl p-6 w-full max-w-sm animate-scale-up">
+            <h3 class="text-xl font-bold text-[#1c1c1e] dark:text-white mb-4">🌐 Select Language</h3>
+            <div id="lang-list" class="flex flex-col gap-2"></div>
+            <button onclick="closeLanguageSettings()" class="btn-apple mt-4">Done</button>
+        </div>
+    </div>
+
+    <script>
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 1. TELEGRAM WEBAPP INIT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 2. SUPABASE INIT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ⚠️ REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
+        const SUPABASE_URL = "https://your-project-id.supabase.co";
+        const SUPABASE_ANON_KEY = "your-supabase-anon-key";
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 3. STATE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        let state = {
+            onboardingStep: 1,
+            subQuestionIndex: 0,
+            userProfile: {
+                id: null,
+                name: "",
+                username: "",
+                photo: "",
+                age: "",
+                gender: "",
+                lookingFor: "",
+                location: "",
+                bio: "",
+                matrixAnswers: [],
+                listAnswers: {},
+                language: "en"
+            },
+            sampleProfiles: [],
+            likes: [],
+            incoming: [],
+            matches: [],
+            chats: {},
+            currentActiveChatUserId: null,
+            hasCompletedOnboarding: false,
+            darkMode: false,
+            language: "en"
+        };
+
+        let subQuestionIndex = 0;
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 4. LANGUAGES
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const LANGUAGES = [
+            { code: "en", name: "English", flag: "🇬🇧" },
+            { code: "es", name: "Español", flag: "🇪🇸" },
+            { code: "fr", name: "Français", flag: "🇫🇷" },
+            { code: "de", name: "Deutsch", flag: "🇩🇪" },
+            { code: "pt", name: "Português", flag: "🇵🇹" },
+            { code: "ar", name: "العربية", flag: "🇦🇪" },
+            { code: "zh", name: "中文", flag: "🇨🇳" },
+            { code: "hi", name: "हिन्दी", flag: "🇮🇳" },
+        ];
+
+        function detectUserLanguage() {
+            const tgLang = tg?.initDataUnsafe?.user?.language_code || navigator?.language?.split('-')[0] || 'en';
+            const supported = LANGUAGES.find(l => l.code === tgLang);
+            return supported ? tgLang : 'en';
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 5. QUESTIONS (20)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const QUESTIONS = [
+            { type: "matrix", text: "🌙 Do you thrive in the quiet dark or seize the daytime?", options: ["Night owl",
+                    "Early bird"
+                ] },
+            { type: "matrix", text: "🎉 How do you recharge your social battery?", options: ["Recharges in groups",
+                    "Recharges alone"
+                ] },
+            { type: "matrix", text: "🎲 What's your standard weekend operating speed?", options: ["Spontaneous",
+                    "Meticulous"
+                ] },
+            { type: "matrix", text: "🧠 What level of discussion keeps you hooked?", options: ["Deep conversations",
+                    "Light banter"
+                ] },
+            { type: "matrix", text: "🌲 Where do you go to fully decompress?", options: ["Outdoorsy", "Indoorsy"] },
+            { type: "matrix", text: "🍜 What's your relationship with dining out?", options: ["Try new foods",
+                    "Comfort food"
+                ] },
+            { type: "matrix", text: "🎨 How does your brain process problem solving?", options: ["Creative",
+                    "Logical"
+                ] },
+            { type: "matrix", text: "🎊 What is your ideal environment to socialise?", options: ["Big parties",
+                    "Small hangs"
+                ] },
+            { type: "matrix", text: "🗣️ How do you communicate complex feedback?", options: ["Direct/blunt",
+                    "Gentle/diplomatic"
+                ] },
+            { type: "matrix", text: "📱 What is your digital messaging cadence?", options: ["Frequent texter",
+                    "Prefers calls"
+                ] },
+            { type: "matrix", text: "👤 What format of hangouts feel most rewarding?", options: ["1-on-1 hangs",
+                    "Group hangs"
+                ] },
+            { type: "matrix", text: "⏰ What's your arrival philosophy for events?", options: ["Strictly punctual",
+                    "Go-with-the-flow"
+                ] },
+            { type: "matrix", text: "🌌 How do you map out concepts or strategies?", options: ["Big-picture thinker",
+                    "Detail-oriented doer"
+                ] },
+            { type: "matrix", text: "💬 What is your dynamic with heavy emotional processing?", options: [
+                    "Open about feelings", "Processes alone"
+                ] },
+            { type: "matrix", text: "😏 What's your dominant comedic frequency?", options: ["Dry/sarcastic humor",
+                    "Warm/silly humor"
+                ] },
+            { type: "multi", text: "🍿 What hangouts excite you most? (Select all)", options: ["Nature adventure",
+                    "Eating out", "Nightlife", "Cultural stuff", "Active sports", "Cozy indoor", "Shopping",
+                    "Creative sessions", "Festivals/events", "Just walking and talking"
+                ] },
+            { type: "multi", text: "💬 What do you talk about with close friends?", options: [
+                    "Life struggles / mental health", "Relationships / dating", "Career / work / money",
+                    "Pop culture / memes", "Deep philosophy / life's meaning", "Politics / social issues",
+                    "Sports / fitness", "Travel / bucket lists", "Random nonsense / roasting", "Shared hobbies"
+                ] },
+            { type: "multi", text: "📱 How do you prefer to stay in touch?", options: ["Long voice notes",
+                    "Short texts throughout the day", "Phone calls", "Video calls", "Meme/reel sharing",
+                    "In-person only", "Group chats", "One-on-one DMs"
+                ] },
+            { type: "multi", text: "⚡ What's your native conflict resolution style?", options: [
+                    "Address it immediately", "Take space, then talk", "Use humor to diffuse",
+                    "Prefer text for hard convos", "Avoid unless it's a dealbreaker", "Apologize quickly",
+                    "Stand my ground firmly"
+                ] },
+            { type: "multi", text: "❤️ What makes you feel deeply seen in a friendship?", options: [
+                    "They remember small details", "They initiate plans", "They check in during hard times",
+                    "They give honest feedback", "They celebrate my wins", "They make me laugh",
+                    "They respect my boundaries"
+                ] }
+        ];
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 6. SAMPLE PROFILES
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function generateSampleProfiles() {
+            const names = ["Racheal", "Chinedu", "Amara", "Tolu", "Zara", "Kofi"];
+            const locations = ["Abuja, Nigeria", "Lagos, Nigeria", "Lekki, Nigeria", "Accra, Ghana", "Nairobi, Kenya"];
+            const bios = [
+                "Adventurer, photographer, and deep conversation lover.",
+                "Tech enthusiast, gamer, and sports fan.",
+                "Creative soul, festival-goer, and hiking buddy.",
+                "Bookworm, foodie, and weekend explorer.",
+                "Music producer, night owl, and coffee addict.",
+                "Yoga teacher, nature lover, and wellness advocate."
+            ];
+            const photos = [
+                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
+                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
+                "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
+                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300",
+                "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300",
+                "https://images.unsplash.com/photo-1504297050568-910d24c426d3?w=300"
+            ];
+            let profiles = [];
+            for (let i = 0; i < 4; i++) {
+                const idx = i % names.length;
+                profiles.push({
+                    id: 100 + i,
+                    name: names[idx],
+                    username: names[idx].toLowerCase() + "_" + Math.random().toString(36).substring(2, 6),
+                    age: 20 + Math.floor(Math.random() * 8),
+                    gender: i % 2 === 0 ? "Female" : "Male",
+                    location: locations[i % locations.length],
+                    bio: bios[i % bios.length],
+                    photo: photos[i % photos.length],
+                    matrixAnswers: Array.from({ length: 15 }, () => Math.random() > 0.5 ? 0 : 1),
+                    listAnswers: {
+                        "15": ["Eating out", "Cultural stuff", "Just walking and talking"].slice(0, 2 + Math.floor(
+                            Math.random() * 2)),
+                        "16": ["Relationships / dating", "Pop culture / memes", "Deep philosophy / life's meaning"]
+                            .slice(0, 2 + Math.floor(Math.random() * 2)),
+                        "17": ["Short texts throughout the day", "Meme/reel sharing"].slice(0, 1 + Math.floor(Math
+                            .random() * 2)),
+                        "18": ["Take space, then talk", "Use humor to diffuse"].slice(0, 1 + Math.floor(Math
+                            .random() * 2)),
+                        "19": ["They remember small details", "They make me laugh"].slice(0, 1 + Math.floor(Math
+                            .random() * 2))
+                    }
+                });
+            }
+            return profiles;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 7. SPARK SCORE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function calculateSparkScore(user, target) {
+            let abMatches = 0;
+            for (let i = 0; i < 15; i++) {
+                if (user.matrixAnswers[i] === target.matrixAnswers[i]) abMatches++;
+            }
+            const abScore = (abMatches / 15) * 100;
+
+            let totalListIntersectionPct = 0;
+            for (let qIdx = 15; qIdx <= 19; qIdx++) {
+                const arrA = user.listAnswers[qIdx] || [];
+                const arrB = target.listAnswers[qIdx] || [];
+                if (arrA.length === 0 && arrB.length === 0) {
+                    totalListIntersectionPct += 100;
+                    continue;
+                }
+                const setB = new Set(arrB);
+                const intersection = arrA.filter(x => setB.has(x));
+                const totalUnique = new Set([...arrA, ...arrB]).size;
+                totalListIntersectionPct += totalUnique > 0 ? (intersection.length / totalUnique) * 100 : 0;
+            }
+            const listScore = totalListIntersectionPct / 5;
+            const sparkScore = (abScore * 0.5) + (listScore * 0.5);
+            return Math.round(sparkScore);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 8. PERSISTENCE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function saveStateToStorage() {
+            state.subQuestionIndex = subQuestionIndex;
+            localStorage.setItem('spark_app_state_2026', JSON.stringify(state));
+        }
+
+        function loadStateFromStorage() {
+            const saved = localStorage.getItem('spark_app_state_2026');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    Object.assign(state, parsed);
+                    subQuestionIndex = state.subQuestionIndex || 0;
+                    if (state.darkMode) {
+                        document.body.classList.add('dark-mode');
+                        document.body.classList.remove('light-mode');
+                        document.getElementById('darkModeToggle')?.classList.add('active');
+                    }
+                    return true;
+                } catch (e) { /* fall through */ }
+            }
+            return false;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 9. SUPABASE SYNC
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const tgUser = tg?.initDataUnsafe?.user;
+        const currentUser = {
+            id: tgUser?.id || 99999999,
+            name: tgUser?.first_name || "New Explorer",
+            username: tgUser?.username || "anonymous_spark",
+            photo_url: tgUser?.photo_url || "",
+            language_code: tgUser?.language_code || detectUserLanguage()
+        };
+
+        async function syncTelegramUserWithDatabase() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error && error.code === 'PGRST116') {
+                    console.log("New user detected. Starting onboarding.");
+                    state.userProfile.id = currentUser.id;
+                    state.userProfile.name = currentUser.name;
+                    state.userProfile.username = currentUser.username;
+                    state.userProfile.photo = currentUser.photo_url;
+                    state.userProfile.language = currentUser.language_code;
+                    state.onboardingStep = 1;
+                    renderOnboardingStep();
+                } else if (profile) {
+                    console.log("Welcome back! Loading profile...");
+                    state.userProfile = {
+                        id: profile.id,
+                        name: profile.name,
+                        username: profile.username,
+                        photo: profile.photo_url,
+                        age: profile.age || "",
+                        gender: profile.gender || "",
+                        lookingFor: profile.looking_for || "",
+                        location: profile.location || "",
+                        bio: profile.bio || "",
+                        matrixAnswers: profile.matrix_answers || [],
+                        listAnswers: profile.list_answers || {},
+                        language: profile.language_code || detectUserLanguage()
+                    };
+                    state.onboardingStep = 12;
+                    saveStateToStorage();
+                    document.getElementById('view-onboarding').classList.add('hidden');
+                    document.getElementById('view-app-main').classList.remove('hidden');
+                    document.getElementById('app-nav-bar').classList.remove('hidden');
+                    switchTab('match');
+                }
+            } catch (err) {
+                console.error("Database connection error:", err);
+                // Fallback to local mode
+                loadStateFromStorage();
+                if (state.onboardingStep > 11) {
+                    document.getElementById('view-onboarding').classList.add('hidden');
+                    document.getElementById('view-app-main').classList.remove('hidden');
+                    document.getElementById('app-nav-bar').classList.remove('hidden');
+                    switchTab('match');
+                } else {
+                    renderOnboardingStep();
+                }
+            }
+        }
+
+        async function saveProfileToCloud() {
+            const p = state.userProfile;
+            const { error } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: p.id,
+                    name: p.name,
+                    username: p.username,
+                    photo_url: p.photo,
+                    age: parseInt(p.age) || null,
+                    gender: p.gender,
+                    looking_for: p.lookingFor,
+                    location: p.location,
+                    bio: p.bio,
+                    matrix_answers: p.matrixAnswers,
+                    list_answers: p.listAnswers,
+                    language_code: p.language || detectUserLanguage(),
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) {
+                console.error("Error saving profile:", error);
+            } else {
+                console.log("Profile saved to Supabase!");
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 10. DARK MODE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function toggleDarkMode() {
+            state.darkMode = !state.darkMode;
+            const toggle = document.getElementById('darkModeToggle');
+            if (state.darkMode) {
+                document.body.classList.add('dark-mode');
+                document.body.classList.remove('light-mode');
+                toggle?.classList.add('active');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+                toggle?.classList.remove('active');
+            }
+            saveStateToStorage();
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 11. LANGUAGE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function openLanguageSettings() {
+            const modal = document.getElementById('lang-modal');
+            const list = document.getElementById('lang-list');
+            list.innerHTML = '';
+            LANGUAGES.forEach(lang => {
+                const div = document.createElement('div');
+                div.className = `lang-option ${state.language === lang.code ? 'selected' : ''}`;
+                div.innerHTML = `<span class="lang-flag">${lang.flag}</span><span class="lang-name">${lang.name}</span>`;
+                div.onclick = () => {
+                    state.language = lang.code;
+                    state.userProfile.language = lang.code;
+                    document.getElementById('lang-indicator').textContent = `🌐 ${lang.code.toUpperCase()}`;
+                    document.getElementById('current-lang-display').textContent = lang.name;
+                    saveStateToStorage();
+                    renderOnboardingStep();
+                    closeLanguageSettings();
+                };
+                list.appendChild(div);
+            });
+            modal.style.display = 'flex';
+        }
+
+        function closeLanguageSettings() {
+            document.getElementById('lang-modal').style.display = 'none';
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 12. SETTINGS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function openNotificationsSettings() {
+            alert('🔔 Notifications Settings\n\n• Match notifications: On\n• Message notifications: On\n• Daily suggestions: On\n\n(Coming soon: full push notification support)');
+        }
+
+        function openPrivacySettings() {
+            alert('🔒 Privacy Settings\n\n• Profile visibility: Everyone\n• Show online status: Yes\n• Block list: Empty\n• Data sharing: App only\n\n(Coming soon: full privacy controls)');
+        }
+
+        function editProfile() {
+            const u = state.userProfile;
+            const newName = prompt('Edit your name:', u.name) || u.name;
+            const newBio = prompt('Edit your bio:', u.bio || '') || u.bio;
+            const newLocation = prompt('Edit your location:', u.location || '') || u.location;
+            if (newName) u.name = newName;
+            if (newBio) u.bio = newBio;
+            if (newLocation) u.location = newLocation;
+            saveStateToStorage();
+            saveProfileToCloud();
+            renderProfileTab();
+        }
+
+        function logoutUser() {
+            if (confirm('Are you sure you want to clear all local data?')) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 13. INIT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function initApp() {
+            // Set language
+            const detected = detectUserLanguage();
+            state.language = detected;
+            state.userProfile.language = detected;
+            const langObj = LANGUAGES.find(l => l.code === detected);
+            document.getElementById('lang-indicator').textContent = `🌐 ${detected.toUpperCase()}`;
+            document.getElementById('current-lang-display').textContent = langObj?.name || 'English';
+
+            // Load from storage first
+            const loaded = loadStateFromStorage();
+            if (!loaded) {
+                state.sampleProfiles = generateSampleProfiles();
+                state.incoming = [100, 102];
+                saveStateToStorage();
+            }
+
+            // Sync with Supabase
+            if (currentUser.id && currentUser.id !== 99999999) {
+                syncTelegramUserWithDatabase();
+            } else {
+                // Fallback: no Telegram user, use local
+                if (state.onboardingStep > 11) {
+                    document.getElementById('view-onboarding').classList.add('hidden');
+                    document.getElementById('view-app-main').classList.remove('hidden');
+                    document.getElementById('app-nav-bar').classList.remove('hidden');
+                    switchTab('match');
+                } else {
+                    renderOnboardingStep();
+                }
+            }
+
+            updateGlobalBadges();
+            renderChatsList();
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 14. ONBOARDING RENDER
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function renderOnboardingStep() {
+            const container = document.getElementById('onboarding-slide-container');
+            const progress = document.getElementById('onboarding-progress');
+            const btnBack = document.getElementById('btn-onboard-back');
+            const btnNext = document.getElementById('btn-onboard-next');
+
+            const step = state.onboardingStep;
+            progress.style.width = `${(step / 11) * 100}%`;
+            btnBack.style.display = step > 1 ? 'block' : 'none';
+            btnNext.innerText = step === 11 ? "Enter Spark ⚡" : (step === 1 ? "Get Started 🚀" : "Continue ➡️");
+            container.innerHTML = "";
+
+            switch (step) {
+                case 1:
+                    container.innerHTML =
+                        `
+                        <div class="text-center flex flex-col items-center gap-4 py-4">
+                            <span class="text-7xl animate-pulse">✨</span>
+                            <h2 class="text-3xl font-bold tracking-tight text-[#1c1c1e] dark:text-white">Find Your Spark</h2>
+                            <p class="text-apple-secondary max-w-xs text-sm leading-relaxed">Skip superficial small talk. Match on values, interests, and conversational compatibility instantly.</p>
+                        </div>`;
+                    break;
+                case 2:
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">What should people call you?</label>
+                            <input type="text" id="onboard-input-name" placeholder="e.g. Alex" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-lg focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.name || ''}">
+                        </div>`;
+                    break;
+                case 3:
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Choose a unique handle</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-4 text-apple-secondary font-medium">@</span>
+                                <input type="text" id="onboard-input-username" placeholder="username" class="w-full bg-apple-input border border-apple rounded-2xl pl-9 pr-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-lg focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.username || ''}">
+                            </div>
+                            <p class="text-xs text-apple-secondary mt-1">3-20 characters, letters, numbers, underscores</p>
+                        </div>`;
+                    break;
+                case 4:
+                    container.innerHTML =
+                        `
+                        <div class="text-center flex flex-col items-center gap-4">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide block w-full text-left">Profile Picture</label>
+                            <img src="${state.userProfile.photo || ''}" class="w-24 h-24 rounded-full object-cover border-4 border-[#007AFF] bg-apple-input shadow-lg" id="onboard-avatar-preview">
+                            <div class="grid grid-cols-3 gap-3 w-full">
+                                <button type="button" onclick="useTelegramPhoto()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Use Telegram</button>
+                                <button type="button" onclick="useDefaultPhoto()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Default</button>
+                                <button type="button" onclick="document.getElementById('galleryInput').click()" class="bg-apple-input border border-apple hover:border-[#007AFF] text-[#1c1c1e] dark:text-white text-xs font-semibold py-3 px-2 rounded-xl transition">Upload</button>
+                            </div>
+                            <input type="file" id="galleryInput" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
+                        </div>`;
+                    break;
+                case 5:
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">How old are you?</label>
+                            <input type="number" id="onboard-input-age" placeholder="e.g. 25" min="16" max="99" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-bold text-2xl text-center max-w-[140px] mx-auto focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.age || ''}">
+                        </div>`;
+                    break;
+                case 6:
+                    const genders = ["Male", "Female", "Non-binary", "Prefer not to say"];
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-2.5">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Your Gender Identity</label>
+                            ${genders.map(g => `
+                                <button onclick="selectGender('${g}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.gender === g ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'} text-sm transition-all">${g}</button>
+                            `).join('')}
+                        </div>`;
+                    break;
+                case 7:
+                    const looking = ["Male", "Female", "Non-binary", "Anyone"];
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-2.5">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Who are you looking for?</label>
+                            ${looking.map(l => `
+                                <button onclick="selectLookingFor('${l}')" class="w-full p-4 text-left rounded-2xl border ${state.userProfile.lookingFor === l ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'} text-sm transition-all">${l}</button>
+                            `).join('')}
+                        </div>`;
+                    break;
+                case 8:
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-3">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Your Location</label>
+                            <input type="text" id="onboard-input-loc" placeholder="e.g. New York, USA" class="bg-apple-input border border-apple rounded-2xl px-4 py-4 text-[#1c1c1e] dark:text-white font-medium text-md focus:outline-none focus:border-[#007AFF] transition-all" value="${state.userProfile.location || ''}">
+                        </div>`;
+                    break;
+                case 9:
+                    renderQuestionnaireSubflow(container);
+                    break;
+                case 10:
+                    container.innerHTML =
+                        `
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-semibold text-apple-secondary uppercase tracking-wide">Write a short bio</label>
+                            <textarea id="onboard-input-bio" rows="4" class="w-full bg-apple-input border border-apple rounded-2xl p-4 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:border-[#007AFF] resize-none transition-all" placeholder="What makes you a great friend?">${state.userProfile.bio || ''}</textarea>
+                            <p class="text-xs text-apple-secondary text-right" id="bio-counter">${(state.userProfile.bio || '').length} / 300</p>
+                        </div>`;
+                    break;
+                case 11:
+                    container.innerHTML =
+                        `
+                        <div class="text-center flex flex-col items-center gap-4 py-6">
+                            <span class="text-6xl animate-bounce">🔥</span>
+                            <h3 class="text-2xl font-bold text-[#1c1c1e] dark:text-white">You're Ready!</h3>
+                            <p class="text-apple-secondary text-sm max-w-xs">Your profile is complete. Start matching with people who share your vibe.</p>
+                        </div>`;
+                    break;
+            }
+        }
+
+        function renderQuestionnaireSubflow(container) {
+            const q = QUESTIONS[subQuestionIndex];
+            const isMatrix = q.type === "matrix";
+
+            let html = `
+                    <div class="flex flex-col h-full justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-[10px] font-bold text-[#007AFF] tracking-wide uppercase bg-[#007AFF]/10 px-2.5 py-0.5 rounded-full border border-[#007AFF]/20">Question ${subQuestionIndex + 1} of 20</span>
+                                <span class="text-xs font-mono font-medium text-apple-secondary">${Math.round(((subQuestionIndex + 1) / 20) * 100)}%</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-[#1c1c1e] dark:text-white leading-snug mb-4">${q.text}</h3>
+                        </div>
+                        <div class="flex flex-col gap-2.5 max-h-[280px] overflow-y-auto hide-scrollbar py-1">`;
+
+            if (isMatrix) {
+                const currentAns = state.userProfile.matrixAnswers[subQuestionIndex];
+                q.options.forEach((opt, idx) => {
+                    const isSelected = (currentAns === idx);
+                    html += `
+                            <button onclick="handleMatrixAnswer(${idx})" class="w-full p-4 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'}">
+                                <span class="checkmark">✓</span> ${opt}
+                            </button>`;
+                });
+            } else {
+                const currentSelections = state.userProfile.listAnswers[subQuestionIndex] || [];
+                q.options.forEach(opt => {
+                    const isSelected = currentSelections.includes(opt);
+                    html += `
+                            <button onclick="handleMultiAnswer('${opt}')" class="w-full p-3.5 text-left rounded-2xl border text-sm transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-semibold' : 'border-apple bg-apple-input text-[#1c1c1e] dark:text-white'}">
+                                <span class="checkmark">✓</span> ${opt}
+                            </button>`;
+                });
+            }
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+            document.getElementById('btn-onboard-next').innerText = isMatrix ? "Next ➡️" : "Confirm Selections ➡️";
+        }
+
+        // ─── Onboarding Handlers ───
+        window.selectGender = function(val) {
+            state.userProfile.gender = val;
+            renderOnboardingStep();
+        };
+
+        window.selectLookingFor = function(val) {
+            state.userProfile.lookingFor = val;
+            renderOnboardingStep();
+        };
+
+        window.useTelegramPhoto = function() {
+            const url = currentUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userProfile.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
+            state.userProfile.photo = url;
+            document.getElementById('onboard-avatar-preview').src = url;
+        };
+
+        window.useDefaultPhoto = function() {
+            const url =
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(state.userProfile.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
+            state.userProfile.photo = url;
+            document.getElementById('onboard-avatar-preview').src = url;
+        };
+
+        window.handleFileSelect = function(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    state.userProfile.photo = e.target.result;
+                    document.getElementById('onboard-avatar-preview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.handleMatrixAnswer = function(idx) {
+            state.userProfile.matrixAnswers[subQuestionIndex] = idx;
+            renderOnboardingStep();
+        };
+
+        window.handleMultiAnswer = function(opt) {
+            if (!state.userProfile.listAnswers[subQuestionIndex]) state.userProfile.listAnswers[subQuestionIndex] = [];
+            let current = state.userProfile.listAnswers[subQuestionIndex];
+            if (current.includes(opt)) {
+                state.userProfile.listAnswers[subQuestionIndex] = current.filter(x => x !== opt);
+            } else {
+                current.push(opt);
+            }
+            renderOnboardingStep();
+        };
+
+        // ─── Navigation ───
+        document.getElementById('btn-onboard-next').onclick = function() {
+            const step = state.onboardingStep;
+
+            // Capture inputs
+            if (step === 2) {
+                const inp = document.getElementById('onboard-input-name');
+                if (!inp || !inp.value.trim()) { alert('Please enter your name.'); return; }
+                state.userProfile.name = inp.value.trim();
+            }
+            if (step === 3) {
+                const inp = document.getElementById('onboard-input-username');
+                if (!inp || !inp.value.trim()) { alert('Please choose a username.'); return; }
+                const val = inp.value.trim().toLowerCase();
+                if (!/^[a-z0-9_]{3,20}$/.test(val)) {
+                    alert('Username must be 3-20 characters, letters, numbers, underscores only.');
+                    return;
+                }
+                state.userProfile.username = val;
+            }
+            if (step === 4) {
+                if (!state.userProfile.photo) {
+                    useDefaultPhoto();
+                }
+            }
+            if (step === 5) {
+                const inp = document.getElementById('onboard-input-age');
+                if (!inp || !inp.value.trim()) { alert('Please enter your age.'); return; }
+                const age = parseInt(inp.value);
+                if (isNaN(age) || age < 16 || age > 99) { alert('Please enter a valid age (16-99).'); return; }
+                state.userProfile.age = age;
+            }
+            if (step === 6) {
+                if (!state.userProfile.gender) { alert('Please select your gender.'); return; }
+            }
+            if (step === 7) {
+                if (!state.userProfile.lookingFor) { alert('Please select who you\'re looking for.'); return; }
+            }
+            if (step === 8) {
+                const inp = document.getElementById('onboard-input-loc');
+                if (!inp || !inp.value.trim()) { alert('Please enter your location.'); return; }
+                state.userProfile.location = inp.value.trim();
+            }
+            if (step === 9) {
+                const q = QUESTIONS[subQuestionIndex];
+                if (q.type === 'matrix') {
+                    if (state.userProfile.matrixAnswers[subQuestionIndex] === undefined) {
+                        alert('Please select an option.');
+                        return;
+                    }
+                } else {
+                    const selections = state.userProfile.listAnswers[subQuestionIndex] || [];
+                    if (selections.length === 0) {
+                        alert('Please select at least one option.');
+                        return;
+                    }
+                }
+                if (subQuestionIndex < QUESTIONS.length - 1) {
+                    subQuestionIndex++;
+                    state.subQuestionIndex = subQuestionIndex;
+                    saveStateToStorage();
+                    renderOnboardingStep();
+                } else {
+                    state.onboardingStep = 10;
+                    saveStateToStorage();
+                    renderOnboardingStep();
+                }
+                return;
+            }
+            if (step === 10) {
+                const inp = document.getElementById('onboard-input-bio');
+                if (inp && inp.value.trim().length > 0) {
+                    state.userProfile.bio = inp.value.trim();
+                } else {
+                    state.userProfile.bio = "Just a friendly soul looking for connections!";
+                }
+            }
+
+            if (step < 11) {
+                state.onboardingStep++;
+                saveStateToStorage();
+                renderOnboardingStep();
+            } else {
+                // Complete onboarding
+                state.onboardingStep = 12;
+                state.hasCompletedOnboarding = true;
+                saveStateToStorage();
+                saveProfileToCloud();
+                document.getElementById('view-onboarding').classList.add('hidden');
+                document.getElementById('view-app-main').classList.remove('hidden');
+                document.getElementById('app-nav-bar').classList.remove('hidden');
+                switchTab('match');
+            }
+        };
+
+        document.getElementById('btn-onboard-back').onclick = function() {
+            const step = state.onboardingStep;
+            if (step === 9 && subQuestionIndex > 0) {
+                subQuestionIndex--;
+                state.subQuestionIndex = subQuestionIndex;
+                saveStateToStorage();
+                renderOnboardingStep();
+                return;
+            }
+            if (step > 1) {
+                state.onboardingStep--;
+                saveStateToStorage();
+                renderOnboardingStep();
+            }
+        };
+
+        // ─── Bio Counter ───
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.id === 'onboard-input-bio') {
+                const counter = document.getElementById('bio-counter');
+                if (counter) {
+                    const len = e.target.value.length;
+                    counter.textContent = `${len} / 300`;
+                    if (len > 300) {
+                        e.target.value = e.target.value.substring(0, 300);
+                        counter.textContent = `300 / 300`;
+                    }
+                }
+            }
+        });
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 15. MAIN APP TABS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        window.switchTab = function(target) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            const tab = document.getElementById(`tab-${target}`);
+            if (tab) tab.style.display = 'flex';
+
+            ['nav-btn-match', 'nav-btn-chats', 'nav-btn-profile'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('active');
+                }
+            });
+            const activeBtn = document.getElementById(`nav-btn-${target}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+
+            if (target === 'match') renderDeck();
+            if (target === 'profile') renderProfileTab();
+            if (target === 'chats') renderChatsList();
+        };
+
+        document.getElementById('nav-btn-match').onclick = () => switchTab('match');
+        document.getElementById('nav-btn-chats').onclick = () => switchTab('chats');
+        document.getElementById('nav-btn-profile').onclick = () => switchTab('profile');
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 16. MATCH DECK
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function renderDeck() {
+            const wrapper = document.getElementById('deck-wrapper');
+            const available = state.sampleProfiles.filter(p => !state.likes.includes(p.id));
+
+            if (available.length === 0) {
+                wrapper.innerHTML = `
+                        <div class="text-center text-apple-secondary p-8 border-2 border-dashed border-apple rounded-3xl bg-apple-light dark:bg-[#1c1c1e] w-full max-w-sm">
+                            <span class="text-4xl block mb-2">🌍</span>
+                            <p class="font-bold text-sm text-[#1c1c1e] dark:text-white">No new profiles</p>
+                            <p class="text-xs text-apple-secondary mt-1">Check back later for new matches!</p>
+                        </div>`;
+                return;
+            }
+
+            const currentCard = available[0];
+            const sparkScore = calculateSparkScore(state.userProfile, currentCard);
+
+            wrapper.innerHTML = `
+                    <div class="match-card animate-scale-up">
+                        <img src="${currentCard.photo}" class="card-image" alt="">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="card-name">${currentCard.name}, <span class="font-normal text-apple-secondary">${currentCard.age}</span></div>
+                                    <div class="card-bio">${currentCard.bio}</div>
+                                </div>
+                                <span class="card-spark">Spark ${sparkScore}%</span>
+                            </div>
+                            <div class="card-actions">
+                                <button onclick="handleVote(${currentCard.id}, false)" class="btn btn-skip">✕ Pass</button>
+                                <button onclick="handleVote(${currentCard.id}, true)" class="btn btn-like">✨ Connect</button>
+                            </div>
+                        </div>
+                    </div>`;
+        }
+
+        window.handleVote = function(userId, liked) {
+            if (liked) {
+                state.likes.push(userId);
+                if (state.incoming.includes(userId) && !state.matches.includes(userId)) {
+                    state.matches.push(userId);
+                    const name = state.sampleProfiles.find(p => p.id === userId)?.name || 'someone';
+                    alert(`🎉 It's a match! You and ${name} are now connected.`);
+                }
+            } else {
+                state.likes.push(userId);
+            }
+            saveStateToStorage();
+            renderDeck();
+            updateGlobalBadges();
+            renderChatsList();
+        };
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 17. CHATS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function renderChatsList() {
+            const container = document.getElementById('chats-list-target');
+            container.innerHTML = "";
+
+            if (state.matches.length === 0) {
+                container.innerHTML = `
+                        <div class="text-center p-8 text-apple-secondary text-sm border-2 border-dashed border-apple rounded-2xl bg-apple-light dark:bg-[#1c1c1e]">
+                            No active connections yet. Match with someone to start chatting!
+                        </div>`;
+                return;
+            }
+
+            state.matches.forEach(id => {
+                const profile = state.sampleProfiles.find(p => p.id === id);
+                if (!profile) return;
+                const div = document.createElement('div');
+                div.className =
+                    "bg-apple-light dark:bg-[#1c1c1e] border border-apple hover:border-[#007AFF] rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all";
+                div.onclick = () => openChatModal(profile);
+                div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <img class="w-11 h-11 rounded-full object-cover border-2 border-[#007AFF]" src="${profile.photo}">
+                            <div>
+                                <h4 class="font-bold text-sm text-[#1c1c1e] dark:text-white">${profile.name}</h4>
+                                <p class="text-xs text-[#007AFF] font-medium">✨ Connected</p>
+                            </div>
+                        </div>
+                        <span class="text-apple-secondary text-xs font-medium">→</span>`;
+                container.appendChild(div);
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 18. CHAT MODAL
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function openChatModal(profile) {
+            state.currentActiveChatUserId = profile.id;
+            const modal = document.getElementById('chat-modal');
+            document.getElementById('chat-header-avatar').src = profile.photo;
+            document.getElementById('chat-header-name').textContent = profile.name;
+
+            const box = document.getElementById('chat-messages-box');
+            box.innerHTML = `
+                    <div class="text-center text-apple-secondary text-xs bg-apple-light dark:bg-[#1c1c1e] border border-apple rounded-xl p-3 max-w-xs mx-auto my-1 font-mono">
+                        🔒 Secure connection established
+                    </div>`;
+
+            if (state.chats[profile.id]) {
+                state.chats[profile.id].forEach(msg => {
+                    appendChatMessage(msg.text, msg.sender === 'me');
+                });
+            }
+            modal.style.display = 'flex';
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function appendChatMessage(text, isMe) {
+            const box = document.getElementById('chat-messages-box');
+            const div = document.createElement('div');
+            div.className = isMe ? 'bubble-me' : 'bubble-them';
+            div.textContent = text;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        document.getElementById('btn-close-chat').onclick = function() {
+            document.getElementById('chat-modal').style.display = 'none';
+            state.currentActiveChatUserId = null;
+        };
+
+        document.getElementById('btn-send-message').onclick = sendChatMessage;
+        document.getElementById('chat-input-field').onkeydown = function(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        };
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input-field');
+            const text = input.value.trim();
+            const targetId = state.currentActiveChatUserId;
+            if (!text || !targetId) return;
+
+            if (!state.chats[targetId]) state.chats[targetId] = [];
+            state.chats[targetId].push({ sender: 'me', text });
+            appendChatMessage(text, true);
+            input.value = '';
+            saveStateToStorage();
+
+            setTimeout(() => {
+                if (state.currentActiveChatUserId === targetId) {
+                    const replies = [
+                        "That's awesome! Tell me more.",
+                        "I totally vibe with that!",
+                        "Love your energy! Let's connect more.",
+                        "Interesting! I've been meaning to try that.",
+                        "You're speaking my language! Keep going."
+                    ];
+                    const reply = replies[Math.floor(Math.random() * replies.length)];
+                    state.chats[targetId].push({ sender: 'them', text: reply });
+                    appendChatMessage(reply, false);
+                    saveStateToStorage();
+                }
+            }, 1200);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 19. PROFILE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function renderProfileTab() {
+            const u = state.userProfile;
+            document.getElementById('my-profile-name').textContent = u.name || 'No name set';
+            document.getElementById('my-profile-handle').textContent = u.username ? `@${u.username}` : '@username';
+            document.getElementById('my-profile-age').textContent = u.age ? `${u.age}` : 'Age not set';
+            document.getElementById('my-profile-loc').textContent = u.location || 'Location not set';
+            document.getElementById('my-profile-bio').textContent = u.bio ? `"${u.bio}"` : 'No bio yet.';
+            document.getElementById('my-profile-pic').src = u.photo ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=007AFF&color=fff&size=128&font-size=0.5`;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 20. BADGES
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function updateGlobalBadges() {
+            const incomingCount = state.incoming.filter(id => !state.likes.includes(id)).length;
+            const badge = document.getElementById('badge-incoming-count');
+            if (incomingCount > 0) {
+                badge.textContent = incomingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            const chatCount = state.matches.length;
+            const chatBadge = document.getElementById('chat-count');
+            if (chatCount > 0) {
+                chatBadge.textContent = chatCount;
+                chatBadge.classList.remove('hidden');
+            } else {
+                chatBadge.classList.add('hidden');
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 21. LAUNCH
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial theme
+            const saved = localStorage.getItem('spark_app_state_2026');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.darkMode) {
+                        document.body.classList.add('dark-mode');
+                        document.body.classList.remove('light-mode');
+                    } else {
+                        document.body.classList.add('light-mode');
+                        document.body.classList.remove('dark-mode');
+                    }
+                } catch (e) { /* fall through */ }
+            } else {
+                document.body.classList.add('light-mode');
+            }
+
+            // Init app
+            initApp();
+        });
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 22. CLEANUP
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // Close modal on overlay click
+        document.getElementById('lang-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLanguageSettings();
+            }
+        });
+
+        // Close chat modal on back button (Telegram)
+        document.addEventListener('backbutton', function() {
+            if (document.getElementById('chat-modal').style.display === 'flex') {
+                document.getElementById('chat-modal').style.display = 'none';
+                state.currentActiveChatUserId = null;
+            }
+        });
+
+        console.log('✨ Spark App Loaded!');
+        console.log('👤 User:', state.userProfile.name || 'Not logged in');
+        console.log('🌐 Language:', state.language);
+    </script>
 </body>
 </html>
